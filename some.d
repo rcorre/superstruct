@@ -5,21 +5,25 @@ import std.traits;
 import std.variant;
 
 auto visitAny(alias fn, V)(ref V var) {
-  foreach(T ; V.AllowedTypes) {
+  foreach(T ; V.AllowedTypes)
     if (auto ptr = var.peek!T) return fn(*ptr);
-  }
+
   assert(0, "No matching type!");
 }
 
 private string accessor(T, string name)() {
   import std.string : format;
   auto getter =
-    "ref auto %s() { return _value.visitAny!(x => x.%s); }"
+    "auto %s() { return _value.visitAny!(x => x.%s); }"
     .format(name, name);
 
   auto setter =
-    "ref auto %s(%s val) { return _value.visitAny!((ref x) => x.%s = val); }"
-    .format(name, T.stringof, name);
+    "auto %s(V)(V val)
+     if (is(typeof(_value.visitAny!(x => x.%s = val))))
+     {
+       return _value.visitAny!((ref x) => x.%s = val);
+     }"
+    .format(name, name, name);
 
   return getter ~ setter;
 }
@@ -34,7 +38,7 @@ private string commonFieldAccessors(T...)() {
     alias FieldType = FieldTypeTuple!(T[0])[i];
 
     static if (hasField!(T[1], FieldType, FieldName))
-        str ~= accessor!(FieldType, FieldName);
+      str ~= accessor!(FieldType, FieldName);
   }
 
   return str;
@@ -54,11 +58,10 @@ struct Some(T...) {
   }
 }
 
-
-  struct Color { float r, g, b; }
-
 unittest {
   import std.math, std.algorithm;
+
+  struct Color { float r, g, b; }
 
   struct Square {
     float x, y, size;
