@@ -1,0 +1,7 @@
+name        "some"
+description "Structs acting like classes."
+copyright   "Copyright © 2015, rcorre"
+authors     "rcorre"
+
+sourcePaths "."
+importPaths "."

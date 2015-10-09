@@ -1,0 +1,8 @@
+*.o
+*.obj
+*.a
+
+.dub
+docs.json
+__dummy.html
+__test__library__
