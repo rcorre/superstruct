@@ -4,17 +4,45 @@ import std.meta;
 import std.traits;
 import std.variant;
 
+/**
+ * A Variant which exposes members that are common across all `SubTypes`.
+ *
+ * A `SuperStruct!(SubTypes...)` wraps an `Algebraic!(SubTypes...)`.
+ * It can hold a single value from any of its `SubTypes`.
+ *
+ * However, unlike a variant, you can access 'compatible' members across the
+ * `SubTypes`, exposed through 'getters', 'setters', and 'opDispatch'.
+ *
+ * A 'getter' is a no-args method (a property).
+ * Given a member 'm', a getter is generated if `T.m` describes a member for
+ * every `T` in `SubTypes` and some common return type can be found.
+ *
+ * A 'setter' is a single-arg method (a property).
+ * The setter for a member 'm' can be invoked with a value of type `V` if every
+ * `SubType` has some member 'm' that can be assigned from `V`, and all such
+ * assignments return some common type.
+ *
+ * Finally, any members which are methods that take multiple arguments are
+ * handled by `opDispatch`. In order to be called with arguments of types `V...`,
+ * such a method would have to be callable across every `SubType` with those
+ * arguments and all such calls would need a common base return type.
+ */
 struct SuperStruct(SubTypes...) {
   Algebraic!SubTypes _value;
 
+  /**
+   * Construct and populate with an initial value.
+   * Params:
+   *   value = a value that can be used to construct one of the `SubTypes`.
+   */
   this(V)(V value) if (is(typeof(_value = value))) {
     _value = value;
   }
 
-  // create getters/setters for fields and 0-1 arg functions (properties).
+  // create getters/setters for fields and 0-1 arg methods (properties).
   mixin(commonAccessors!SubTypes);
 
-  // opDispatch handles any multi-arg functions
+  // opDispatch handles any multi-arg methods
   auto opDispatch(string op, Args...)(Args args) {
     return _value.varCall!op(args);
   }
