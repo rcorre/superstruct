@@ -11,10 +11,12 @@ struct SuperStruct(SubTypes...) {
     _value = value;
   }
 
+  // create getters/setters for fields and 0-1 arg functions (properties).
   mixin(commonAccessors!SubTypes);
 
+  // opDispatch handles any multi-arg functions
   auto opDispatch(string op, Args...)(Args args) {
-    return _value.visitAny!((ref x) => mixin("x." ~ op ~ "(args)"));
+    return _value.varCall!op(args);
   }
 }
 
@@ -51,28 +53,24 @@ unittest {
 }
 
 private:
-auto varGet(string name, V)(V var) {
+auto visitAny(alias fn, V)(ref V var) {
   foreach(SubType ; V.AllowedTypes)
     if (auto ptr = var.peek!SubType)
-      return mixin("(*ptr)." ~ name);
+      return fn(ptr);
 
-  assert(0);
+  assert(0, "Underlying variant holds no value.");
 }
 
-auto varSet(string name, SuperType, ArgType)(ref SuperType var, ArgType value) {
-  foreach(SubType ; SuperType.AllowedTypes)
-    if (auto ptr = var.peek!SubType)
-      return mixin("(*ptr)." ~ name ~ "=value");
+auto varGet(string name, V)(V var) {
+  return var.visitAny!(x => mixin("x." ~ name));
+}
 
-  assert(0);
+auto varSet(string name, V, ArgType)(ref V var, ArgType value) {
+  return var.visitAny!(x => mixin("x." ~ name ~ "=value"));
 }
 
 auto varCall(string name, V, Args...)(ref V var, Args args) {
-  foreach(SubType ; V.AllowedTypes)
-    if (auto ptr = var.peek!SubType)
-      return mixin("(*ptr)." ~ name ~ "(args)");
-
-  assert(0);
+  return var.visitAny!(x => mixin("x." ~ name ~ "(args)"));
 }
 
 unittest {
@@ -125,13 +123,11 @@ unittest {
   static assert(!__traits(compiles, varCall!"assign"(bar, 2, 6, 8)));
 }
 
-// true if "name" is a field or 0-arg method of every AllowedType,
-// and all such fields/members have compatible return types
+/* true if "name" is a field or 0-arg method of every AllowedType,
+ * and all such fields/members have compatible return types.
+ * This is used to determine whether to generate a getter.
+ */
 enum canGet(string name, V) = is(typeof(varGet!name(V.init)));
-
-// TODO:
-// true if "name" is a method callable with Args
-//enum canCall(string name, V, R, Args...) = is(typeof(varCall!name(V.init, Args.init)));
 
 unittest {
   struct Foo {
@@ -163,13 +159,6 @@ unittest {
   static assert( canGet!("d", Thing)); // field on one, getter property on the other
   static assert( canGet!("e", Thing)); // field on one, getter/setter property on the other
   static assert( canGet!("f", Thing)); // field on one, ref property on the other
-}
-
-auto visitAny(alias fn, V)(ref V var) {
-  foreach(T ; V.AllowedTypes)
-    if (auto ptr = var.peek!T) return fn(*ptr);
-
-  assert(0, "No matching type!");
 }
 
 /* This generates a property that gets the member across any of the source types.
