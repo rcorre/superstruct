@@ -1,5 +1,5 @@
-name        "some"
-description "Structs acting like classes."
+name        "superstruct"
+description "A superclass for value types."
 copyright   "Copyright © 2015, rcorre"
 authors     "rcorre"
 
