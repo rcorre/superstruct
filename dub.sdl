@@ -3,5 +3,12 @@ description "A superclass for value types."
 copyright   "Copyright © 2015, rcorre"
 authors     "rcorre"
 
-sourcePaths "."
 importPaths "."
+
+configuration "library" {
+  sourceFiles "./superstruct.d"
+}
+
+configuration "unittest" {
+  sourceFiles "./superstruct.d" "./tests.d"
+}

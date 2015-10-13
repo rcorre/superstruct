@@ -3,6 +3,11 @@ import superstruct;
 import std.math;
 import std.traits;
 
+version(unittest) { }
+else {
+  static assert(0, "tests.d does not belong in a non-unittest build!");
+}
+
 struct Vector2(T : real) {
   T x, y;
 
