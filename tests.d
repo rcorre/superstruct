@@ -8,6 +8,8 @@ else {
   static assert(0, "tests.d does not belong in a non-unittest build!");
 }
 
+// --- General functional test, representing actual usage ---
+
 struct Vector2(T : real) {
   T x, y;
 
@@ -80,4 +82,24 @@ unittest {
 
   static assert(!__traits(compiles, { r.size;   })); // no size on Ellipse
   static assert(!__traits(compiles, { r.radius; })); // no radius on Rect
+}
+
+// --- Detailed testing ---
+
+// overload support
+unittest {
+  struct A {
+    void i(int val) { }
+    void i(int val, int val2) { }
+  }
+
+  struct B {
+    void i(int val) { }
+    void i(int val, int val2) { }
+  }
+
+  auto s = SuperStruct!(A,B)(A());
+
+  s.i = 5;
+  s.i(5, 10);
 }

@@ -41,11 +41,6 @@ struct SuperStruct(SubTypes...) {
 
   // create getters/setters for fields and 0-1 arg methods (properties).
   mixin(commonAccessors!SubTypes);
-
-  // opDispatch handles any multi-arg methods
-  auto opDispatch(string op, Args...)(Args args) {
-    return _value.varCall!op(args);
-  }
 }
 
 unittest {
@@ -251,11 +246,15 @@ unittest {
 string setterCode(string member)() {
   import std.string : format;
   return q{
-    auto %s(ArgType)(ArgType arg) if (is(typeof(_value.varSet!"%s"(arg))))
+    auto %s(Args...)(Args args) if (is(typeof(_value.varSet!"%s"(args))) ||
+                                    is(typeof(_value.varCall!"%s"(args))))
     {
-      return _value.varSet!"%s"(arg);
+      static if (args.length == 1)
+        return _value.varSet!"%s"(args);
+      else
+        return _value.varCall!"%s"(args);
     }
-  }.format(member, member, member);
+  }.format(member, member, member, member, member);
 }
 
 unittest {
