@@ -10,22 +10,13 @@ import std.variant;
  * A `SuperStruct!(SubTypes...)` wraps an `Algebraic!(SubTypes...)`.
  * It can hold a single value from any of its `SubTypes`.
  *
- * However, unlike a variant, you can access 'compatible' members across the
- * `SubTypes`, exposed through 'getters', 'setters', and 'opDispatch'.
+ * Unlike a Variant/Algebraic, `SuperStruct` exposes access to 'common' members
+ * that have compatible signatures.
  *
- * A 'getter' is a no-args method (a property).
- * Given a member 'm', a getter is generated if `T.m` describes a member for
- * every `T` in `SubTypes` and some common return type can be found.
- *
- * A 'setter' is a single-arg method (a property).
- * The setter for a member 'm' can be invoked with a value of type `V` if every
- * `SubType` has some member 'm' that can be assigned from `V`, and all such
- * assignments return some common type.
- *
- * Finally, any members which are methods that take multiple arguments are
- * handled by `opDispatch`. In order to be called with arguments of types `V...`,
- * such a method would have to be callable across every `SubType` with those
- * arguments and all such calls would need a common base return type.
+ * A member is 'common' if its name describes a function or field on every one
+ * of `SubTypes`. A call signature for a given member is 'compatible', for an
+ * instance of any one of `SubTypes`, that member can be called with the
+ * provided set of arguments _and_ all such calls have a common return type.
  */
 struct SuperStruct(SubTypes...) {
   Algebraic!SubTypes _value;
@@ -33,16 +24,17 @@ struct SuperStruct(SubTypes...) {
   /**
    * Construct and populate with an initial value.
    * Params:
-   *   value = a value that can be used to construct one of the `SubTypes`.
+   *   value = something implicitly covertible to of one of the `SubTypes`.
    */
   this(V)(V value) if (is(typeof(_value = value))) {
     _value = value;
   }
 
-  // create getters/setters for fields and 0-1 arg methods (properties).
-  mixin(commonAccessors!SubTypes);
+  // the meta-magic for exposing common members
+  mixin(allVisitorCode!SubTypes);
 }
 
+///
 unittest {
   import std.math, std.algorithm;
 
@@ -76,24 +68,24 @@ unittest {
 }
 
 private:
-auto visitAny(alias fn, V)(ref V var) {
-  foreach(SubType ; V.AllowedTypes)
-    if (auto ptr = var.peek!SubType)
-      return fn(ptr);
+/*
+ * Try to invoke `member` with the provided `args` for every `AllowedType`.
+ * Compiles only if such a call is possible on every type.
+ * Compiles only if the return values of all such calls share a common type.
+ */
+auto visitor(string member, V, Args...)(ref V var, Args args) {
+  static if (Args.length == 0)      // field or 'getter' (no-args function)
+    enum expression = "ptr."~member;
+  else static if (Args.length == 1) // field or 'setter' (1-arg function)
+    enum expression = "ptr."~member~"=args[0]";
+  else                              // 2+ arg function
+    enum expression = "ptr."~member~"(args)";
 
-  assert(0, "Underlying variant holds no value.");
-}
+  foreach(T ; var.AllowedTypes)
+    if (auto ptr = var.peek!T)
+      return mixin(expression);
 
-auto varGet(string name, V)(V var) {
-  return var.visitAny!(x => mixin("x." ~ name));
-}
-
-auto varSet(string name, V, ArgType)(ref V var, ArgType value) {
-  return var.visitAny!(x => mixin("x." ~ name ~ "=value"));
-}
-
-auto varCall(string name, V, Args...)(ref V var, Args args) {
-  return var.visitAny!(x => mixin("x." ~ name ~ "(args)"));
+  assert(0, "Variant holds no value");
 }
 
 unittest {
@@ -119,142 +111,48 @@ unittest {
   Thing foo = Foo(4);
   Thing bar = Bar(5, 6);
 
-  assert(varGet!"num"(foo) == 4);
-  assert(varGet!"num"(bar) == 5);
+  assert(visitor!"num"(foo) == 4);
+  assert(visitor!"num"(bar) == 5);
 
-  assert(varSet!"num"(foo, 5) == 5);
-  assert(varGet!"num"(foo) == 5);
+  assert(visitor!"num"(foo, 5) == 5);
+  assert(visitor!"num"(foo)    == 5);
 
-  assert(varCall!"shout"(foo) == "hi!");
-  assert(varCall!"shout"(bar) == "bye!");
-  assert(varCall!"shout"(bar) == "bye!");
+  assert(visitor!"shout"(foo) == "hi!");
+  assert(visitor!"shout"(bar) == "bye!");
+  assert(visitor!"shout"(bar) == "bye!");
 
-  varCall!"assign"(foo, 2);
-  assert(varGet!"num"(foo) == 2);
+  visitor!"assign"(foo, 2);
+  assert(visitor!"num"(foo) == 2);
 
-  varCall!"assign"(bar, 2);
-  assert(varGet!"num"(bar) == 3); // bar adds 1
+  visitor!"assign"(bar, 2);
+  assert(visitor!"num"(bar) == 3); // bar adds 1
 
-  varCall!"assign"(foo, 2, 6);
-  assert(varGet!"num"(foo) == 8);
+  visitor!"assign"(foo, 2, 6);
+  assert(visitor!"num"(foo) == 8);
 
   // field 'othernum' only exists on bar
-  static assert(!__traits(compiles, varGet!"othernum"(bar)));
-  static assert(!__traits(compiles, varSet!"othernum"(bar)));
+  static assert(!__traits(compiles, visitor!"othernum"(bar)));
+  static assert(!__traits(compiles, visitor!"othernum"(bar)));
 
   // 3-param overload of 'assign' only exists on Bar
-  static assert(!__traits(compiles, varCall!"assign"(bar, 2, 6, 8)));
+  static assert(!__traits(compiles, visitor!"assign"(bar, 2, 6, 8)));
 }
 
-/* true if "name" is a field or 0-arg method of every AllowedType,
- * and all such fields/members have compatible return types.
- * This is used to determine whether to generate a getter.
+/*
+ * Generate a templated function to expose access to a given member across all
+ * types that could be stored in the Variant `_value`.
+ * For any given call signature, this template will instantiate only if the
+ * matching member on every subtype is callable with such a signature _and_ if
+ * all such calls have a common return type.
  */
-enum canGet(string name, V) = is(typeof(varGet!name(V.init)));
-
-unittest {
-  struct Foo {
-    int   a;
-    float b;
-    int   c;
-    int   d;
-    int   e;
-    int   f;
-  }
-
-  struct Bar {
-    int a;
-    int b;
-    // no c
-    int d() { return _d; }
-    int e() { return _e; }
-    int e(int val) { return _e = val; }
-    ref int f() { return _f; }
-
-    int _d, _e, _f;
-  }
-
-  alias Thing = Algebraic!(Foo, Bar);
-
-  static assert( canGet!("a", Thing)); // field of same type
-  static assert( canGet!("b", Thing)); // field of differing type, can upcast
-  static assert(!canGet!("c", Thing)); // field does not exist on all types
-  static assert( canGet!("d", Thing)); // field on one, getter property on the other
-  static assert( canGet!("e", Thing)); // field on one, getter/setter property on the other
-  static assert( canGet!("f", Thing)); // field on one, ref property on the other
-}
-
-/* This generates a property that gets the member across any of the source types.
- * The return type will be the common type across that member on all source types.
- * For example, if the member is a float field on one source type and an int on another,
- * the return type will be a float.
- */
-string getterCode(string member)() {
+string memberVisitorCode(string name)() {
   import std.string : format;
 
   return q{
-    @property auto %s()
-    {
-      return _value.varGet!"%s";
+    auto %s(Args...)(Args args) {
+      return visitor!"%s"(_value, args);
     }
-  }.format(member, member);
-}
-
-unittest {
-  struct Foo {
-    int a;
-    int b;
-    int c;
-    int d;
-    int e;
-  }
-
-  struct Bar {
-    int    a;
-    real   b;
-    int    c() { return 1; }        // getter only
-    string d;                       // incompatible type
-    int    e(int val) { return 0; } // setter only
-  }
-
-  struct FooBar {
-    alias Store = Algebraic!(Foo, Bar);
-    Store _value;
-
-    mixin(getterCode!("a"));
-    mixin(getterCode!("b"));
-    mixin(getterCode!("c"));
-  }
-
-  FooBar fb;
-
-  static assert(is(typeof(fb.a()) == int));  // both are int
-  static assert(is(typeof(fb.b()) == real)); // real is common type of (int, real)
-  static assert(is(typeof(fb.c()) == int));  // field on Foo, function on Bar
-}
-
-/* This generates a property that sets the member across any of the source types.
- * The return type will be the common type across that member on all source types.
- * We cannot determine a concrete type for the argument, as it could be a templated function in one
- * of the source types.
- * Therefor, this property si a template function constrained to values that can be used to set the
- * matching member on each of the underlying source types. For example, if the member "m" is a
- * float field on one source type and an int field on the other, this property will accept an int
- * (which is implicitly convertible to float) but not a float (as it is not implicitly convertible
- * to int).
- */
-string setterCode(string member)() {
-  import std.string : format;
-  return q{
-    auto %s(Args...)(Args args) if (is(typeof(_value.varSet!"%s"(args))) ||
-                                    is(typeof(_value.varCall!"%s"(args))))
-    {
-      static if (args.length == 1)
-        return _value.varSet!"%s"(args);
-      else
-        return _value.varCall!"%s"(args);
-    }
-  }.format(member, member, member, member, member);
+  }.format(name, name);
 }
 
 unittest {
@@ -280,14 +178,18 @@ unittest {
 
     this(T)(T t) { _value = t; }
 
-    mixin(setterCode!("a"));
-    mixin(setterCode!("b"));
-    mixin(setterCode!("c"));
-    mixin(setterCode!("d"));
-    mixin(setterCode!("e"));
+    mixin(memberVisitorCode!("a"));
+    mixin(memberVisitorCode!("b"));
+    mixin(memberVisitorCode!("c"));
+    mixin(memberVisitorCode!("d"));
+    mixin(memberVisitorCode!("e"));
   }
 
   FooBar fb = Foo(1);
+
+  static assert(is(typeof(fb.a()) == int));  // both are int
+  static assert(is(typeof(fb.b()) == real)); // real is common type of (int, real)
+  static assert(is(typeof(fb.c()) == int));  // field on Foo, function on Bar
 
   static assert( is(typeof(fb.a = 5) == int )); // both are int
   static assert( is(typeof(fb.b = 5) == real)); // real is common type of (int, real)
@@ -299,26 +201,17 @@ unittest {
   static assert(!is(typeof(fb.d = 5.0))); // incompatible types
 }
 
-// Generate a set of setters and getters for the common fields/members across all SubTypes.
-string commonAccessors(SubTypes...)() {
-  alias SuperType = Algebraic!SubTypes;
+/*
+ * Generate a string containing the `memberVisitorCode` for every name in the
+ * union of all members across SubTypes.
+ */
+string allVisitorCode(SubTypes...)() {
   enum allMembers(T) = __traits(allMembers, T);
 
   string str;
 
-  foreach(member ; NoDuplicates!(staticMap!(allMembers, SubTypes))) {
-    // The getter is not templated, so we should only include it if it is viable.
-    // Fortunately, we can tell this ahead of time based on the return types of the SubType getters.
-    static if (canGet!(member, SuperType))
-        str ~= getterCode!(member);
-
-    // We cannot tell ahead of time whether we can generate a viable setter.
-    // Instead we generate a setter that takes a generic arg, and determines whether it is viable
-    // for any particular call.
-    // It is possible to generate a setter with an impossible-to-satisfy template constraint.
-    // This shouldn't be a problem.
-    str ~= setterCode!(member);
-  }
+  foreach(member ; NoDuplicates!(staticMap!(allMembers, SubTypes)))
+    str ~= memberVisitorCode!(member);
 
   return str;
 }
@@ -346,7 +239,7 @@ unittest {
 
     this(T)(T t) { _value = t; }
 
-    mixin(commonAccessors!(Foo, Bar));
+    mixin(allVisitorCode!(Foo, Bar));
   }
 
   FooBar fb = Foo(1);
