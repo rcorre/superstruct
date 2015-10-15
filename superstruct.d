@@ -1,3 +1,10 @@
+/**
+ * This module provides a single type, `SuperStruct`.
+ *
+ * Authors: Ryan Roden-Corrent ($(LINK2 https://github.com/rcorre, rcorre))
+ * License: MIT
+ * Copyright: © 2015, Ryan Roden-Corrent
+ */
 module superstruct;
 
 import std.meta;
@@ -36,37 +43,61 @@ struct SuperStruct(SubTypes...) {
   mixin(allVisitorCode!SubTypes);
 }
 
-///
+/// Two disparate structs ... they can't be used interchangeably, right?
 unittest {
   import std.math, std.algorithm;
 
-  struct Color { float r, g, b; }
-
   struct Square {
-    float x, y, size;
-    Color color;
-
+    float size;
     float area() { return size * size; }
-    float perimeter() { return 4 * size; }
   }
 
   struct Circle {
-    float x, y, r;
-    Color color;
-
+    float r;
     float area() { return r * r * PI; }
-    float perimeter() { return 2 * PI * r; }
+  }
+
+  // Or can they?
+  alias Shape = SuperStruct!(Square, Circle);
+
+  // look! polymorphism!
+  Shape sqr = Square(2);
+  Shape cir = Circle(4);
+  Shape[] shapes = [ sqr, cir ];
+
+  // call functions that are shared between the source types!
+  assert(shapes.map!(x => x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
+}
+
+/// Want to access fields of the underlying types? Not a problem!
+/// Are some of them properties? Not a problem!
+unittest {
+  struct Square {
+    int top, left, width, height;
+  }
+
+  struct Circle {
+    int radius;
+    int x, y;
+
+    auto top() { return y - radius; }
+    auto top(int val) { return y = val + radius; }
   }
 
   alias Shape = SuperStruct!(Square, Circle);
 
-  Shape sqr = Square(1,2,3);
-  Shape cir = Circle(0,0,4);
-  Shape[] shapes = [ sqr, cir ];
-  assert(shapes.map!(x => x.area).sum.approxEqual(3 * 3 + 4 * 4 * PI));
+  // if a Shape is a Circle, `top` forwards to Circle's top property
+  Shape cir = Circle(4, 0, 0);
+  assert(cir.top = 6);
+  assert(cir.top == 6);
 
-  sqr.color = Color(1,0,0);
-  assert(sqr.color.r == 1);
+  // if a Shape is a Square, `top` forwards to Squares's top field
+  Shape sqr = Square(0, 0, 4, 4);
+  assert(sqr.top = 6);
+  assert(sqr.top == 6);
+
+  // Square.left is hidden, as Circle has no such member
+  static assert(!is(typeof(sqr.left)));
 }
 
 private:

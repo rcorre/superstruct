@@ -7,9 +7,7 @@ SuperStruct
 
 # What is it?
 
-It's a `struct`! It's a `class`! No, its ...
-
-`SuperStruct`!
+It's a `struct`! It's a `class`! No, its ...  `SuperStruct`!
 
 Lighter than a `class` and classier than a `struct`, `SuperClass` is the bastard
 child of
@@ -39,7 +37,7 @@ Shape cir = Circle(4);
 Shape[] shapes = [ sqr, cir ];
 
 // call functions that are shared between the source types!
-assert(shapes.map!(x => x.area).sum.approxEqual(3 * 3 + 4 * 4 * PI));
+assert(shapes.map!(x => x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
 ```
 
 Want to access fields of the underlying types? Not a problem!
@@ -47,27 +45,31 @@ Are some of them properties? Not a problem!
 
 ```d
 struct Square {
-  Vector2f topLeft, size;
-  auto center() { return topLeft + size / 2; }
-  auto center(Vector2f val) { return topLeft = val - size / 2; }
+  int top, left, width, height;
 }
 
 struct Circle {
-  float r;
-  Vector2f center;
+  int radius;
+  int x, y;
+
+  auto top() { return y - radius; }
+  auto top(int val) { return y = val + radius; }
 }
 
 alias Shape = SuperStruct!(Square, Circle);
 
-Shape sqr = Square(Vector2f(0,0), Vector2f(4,4));
-Shape cir = Circle(4, Vector2f(8,8));
+// if a Shape is a Circle, `top` forwards to Circle's top property
+Shape cir = Circle(4, 0, 0);
+assert(cir.top = 6);
+assert(cir.top == 6);
 
-// we can get/set center as it is a field on Circle and a property on Square
-// if Square.center had no setter, then we would only be able to get
-sqr.center = cir.center;
+// if a Shape is a Square, `top` forwards to Squares's top field
+Shape sqr = Square(0, 0, 4, 4);
+assert(sqr.top = 6);
+assert(sqr.top == 6);
 
-// Square.topLeft is hidden, as Circle has no such member
-static assert(!is(typeof(sqr.topLeft)));
+// Square.left is hidden, as Circle has no such member
+static assert(!is(typeof(sqr.left)));
 ```
 
 # Is it useful?
