@@ -17,6 +17,8 @@ import std.variant;
  * of `SubTypes`. A call signature for a given member is 'compatible', for an
  * instance of any one of `SubTypes`, that member can be called with the
  * provided set of arguments _and_ all such calls have a common return type.
+ *
+ * `SuperStruct` ignores members beginning with "__".
  */
 struct SuperStruct(SubTypes...) {
   Algebraic!SubTypes _value;
@@ -208,10 +210,14 @@ unittest {
 string allVisitorCode(SubTypes...)() {
   enum allMembers(T) = __traits(allMembers, T);
 
+  // ignore __ctor, __dtor, and the like
+  enum shouldExpose(string name) = name.length < 2 || name[0..2] != "__";
+
   string str;
 
   foreach(member ; NoDuplicates!(staticMap!(allMembers, SubTypes)))
-    str ~= memberVisitorCode!(member);
+    static if (shouldExpose!member)
+      str ~= memberVisitorCode!(member);
 
   return str;
 }
@@ -260,4 +266,30 @@ unittest {
   static assert(!is(typeof(fb.c = 5  ))); // getter only
   static assert(!is(typeof(fb.d = 5  ))); // incompatible types
   static assert(!is(typeof(fb.d = 5.0))); // incompatible types
+}
+
+// make sure __ctor and __dtor don't blow things up
+unittest {
+  struct Foo {
+    this(int i) { }
+    this(this) { }
+    ~this() { }
+  }
+
+  struct Bar {
+    this(int i) { }
+    this(this) { }
+    ~this() { }
+  }
+
+  struct FooBar {
+    alias Store = Algebraic!(Foo, Bar);
+    Store _value;
+
+    this(T)(T t) { _value = t; }
+
+    mixin(allVisitorCode!(Foo, Bar));
+  }
+
+  FooBar fb = Foo(1);
 }
