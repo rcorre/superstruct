@@ -11,19 +11,18 @@ import std.meta;
 import std.traits;
 import std.variant;
 
-/**
- * A Variant which exposes members that are common across all `SubTypes`.
+/** A Variant which exposes members that are common across all `SubTypes`.
  *
- * A `SuperStruct!(SubTypes...)` wraps an `Algebraic!(SubTypes...)`.
- * It can hold a single value from any of its `SubTypes`.
+ * A `SuperStruct!(SubTypes...)` wraps an `Algebraic!(SubTypes...)`.  It can
+ * hold a single value from any of its `SubTypes`.
  *
  * Unlike a Variant/Algebraic, `SuperStruct` exposes access to 'common' members
  * that have compatible signatures.
  *
- * A member is 'common' if its name describes a function or field on every one
- * of `SubTypes`. A call signature for a given member is 'compatible', for an
- * instance of any one of `SubTypes`, that member can be called with the
- * provided set of arguments _and_ all such calls have a common return type.
+ * A member is 'common' if its name describes a public function or field on
+ * every one of `SubTypes`. A call signature for a given member is 'compatible'
+ * if, for an instance of any one of `SubTypes`, that member can be called with
+ * the provided set of arguments _and_ all such calls have a common return type.
  *
  * `SuperStruct` ignores members beginning with "__".
  */
