@@ -127,6 +127,8 @@ unittest {
     string shout() { return "hi!"; }
     void assign(int val) { num = val; }
     void assign(int val1, int val2) { num = val1 + val2; }
+
+    void set(T)(T val) { num = val; } // templated setter
   }
 
   struct Bar {
@@ -136,6 +138,8 @@ unittest {
     void assign(int val) { num = val + 1; }
     void assign(int val1, int val2) { num = val1 + val2 + 1; }
     void assign(int val1, int val2, int val3) { num = val1 + val2 + val3; }
+
+    void set(T)(T val) { num = val; }
   }
 
   alias Thing = Algebraic!(Foo, Bar);
@@ -161,6 +165,9 @@ unittest {
 
   visitor!"assign"(foo, 2, 6);
   assert(visitor!"num"(foo) == 8);
+
+  visitor!"set"(foo, 9);
+  assert(visitor!"num"(foo) == 9);
 
   // field 'othernum' only exists on bar
   static assert(!__traits(compiles, visitor!"othernum"(bar)));

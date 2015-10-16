@@ -1,5 +1,3 @@
-module privacy;
-
 import superstruct;
 
 // public/public:
