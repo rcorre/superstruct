@@ -38,6 +38,15 @@ bool approxEqual(T : real)(Vector2!T lhs, Vector2!T rhs) {
 struct Rect(T : real) {
   Vector2!T topLeft, size;
 
+  // make sure constructors don't blow things up
+  this(T x, T y, T w, T h) {
+    topLeft = Vector2!T(x, y);
+    size    = Vector2!T(w, h);
+  }
+
+  // useless dtor, but make sure the existence of this symbol causes no issue
+  ~this() { }
+
   auto center()              { return topLeft + size / 2; }
   auto center(Vector2!T val) { return topLeft = val - size / 2; }
 
@@ -68,7 +77,7 @@ static assert( hasMember!(Shape!float, "area"));
 unittest {
   alias Vector2f = Vector2!float;
 
-  Shape!float r = Rect!float(Vector2f(0, 0), Vector2f(16, 16));
+  Shape!float r = Rect!float(0, 0, 16, 16);
 
   assert(approxEqual(r.topLeft, Vector2f(0, 0)));
   assert(approxEqual(r.center , Vector2f(8, 8)));
@@ -102,4 +111,54 @@ unittest {
 
   s.i = 5;
   s.i(5, 10);
+}
+
+// don't interfere with postblit
+unittest {
+  struct A {
+    string s;
+    this(this) { s = "a"; }
+  }
+
+  struct B {
+    string s;
+    this(this) { s = "b"; }
+  }
+
+  alias AB = SuperStruct!(A, B);
+  AB a = A("init");
+  AB b = B("init");
+
+  assert(a.s == "a");
+  assert(b.s == "b");
+}
+
+// don't interfere with dtor
+unittest {
+  int aDisposed, bDisposed;
+
+  struct A {
+    ~this() { ++aDisposed; }
+  }
+
+  struct B {
+    ~this() { ++bDisposed; }
+  }
+
+  alias AB = SuperStruct!(A, B);
+
+  int aCount, bCount;
+
+  {
+    A a = A();
+    B b = B();
+
+    // some destructors will be invoked in the construction process
+    aCount = aDisposed;
+    bCount = bDisposed;
+  }
+
+  // make sure dtors were invoked when the SuperStructs went out of scope
+  assert(aDisposed == aCount + 1);
+  assert(bDisposed == bCount + 1);
 }
