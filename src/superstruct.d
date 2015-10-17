@@ -27,7 +27,7 @@ import std.variant;
  * `SuperStruct` ignores members beginning with "__".
  */
 struct SuperStruct(SubTypes...) {
-  Algebraic!SubTypes _value;
+  private Algebraic!SubTypes _value;
 
   /**
    * Construct and populate with an initial value.
