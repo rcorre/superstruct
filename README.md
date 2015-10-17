@@ -1,23 +1,49 @@
 SuperStruct
 ===
 
-[(docs)](http://rcorre.github.io/superstruct).
+- [code](http://github.com/rcorre/superstruct).
+- [docs](http://rcorre.github.io/superstruct).
+- [dub](http://code.dlang.org/packages/superstruct).
 
-[(dub)](http://code.dlang.org/packages/superstruct).
+Let's say you've got a few structs representing shapes, say, `Circle`, `Square`
+and `Triangle`. You want an overarching type to store any one of these shapes.
+
+```d
+alias Shape = Algebraic!(Circle, Square, Triangle)
+Shape shape = Circle(x, y, radius);
+```
+
+Ok, an `Algebraic` (or `Variant`, in general) isn't a bad choice. Now, could you 
+grab the `area` of that shape for me?
+
+```d
+auto area = shape.visit!((Circle c)   => c.area,
+                         (Square s)   => s.area,
+                         (Triangle t) => t.area);
+```
+
+Alright, that works well enough. How about the `perimeter`? They all have one of
+those, don't they?
+
+```d
+auto perimeter = shape.visit!((Circle c)   => c.perimeter,
+                              (Square s)   => s.perimeter,
+                              (Triangle t) => t.perimeter);
+```
+
+At this point, you may be wondering if there's a better way.
 
 # What is it?
 
 It's a `struct`! It's a `class`! No, its ...  `SuperStruct`!
 
-Lighter than a `class` and classier than a `struct`, `SuperClass` is the bastard
-child of
+This bastard child of
 [`wrap`](http://dlang.org/phobos/std_typecons.html#.wrap) and
-[`variant`](http://dlang.org/phobos/std_variant.html).
-
-Example time!
+[`variant`](http://dlang.org/phobos/std_variant.html)
+works like an `Algebraic`, but allows access to members that are common across
+the source types.
 
 ```d
-// two disparate structs ... they can't be used interchangeably, right?
 struct Square {
   float size;
   float area() { return size * size; }
@@ -28,7 +54,6 @@ struct Circle {
   float area() { return r * r * PI; }
 }
 
-// Or can they?
 alias Shape = SuperStruct!(Square, Circle);
 
 // look! polymorphism!
@@ -40,14 +65,18 @@ Shape[] shapes = [ sqr, cir ];
 assert(shapes.map!(x => x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
 ```
 
-Want to access fields of the underlying types? Not a problem!
-Are some of them properties? Not a problem!
+Notice that there is no explicit interface definition. The 'interface' forms
+organically from the common members of the source types.
+
+The interface isn't limited to methods -- common fields can be exposed as well:
 
 ```d
+// `top` is a field of Square
 struct Square {
   int top, left, width, height;
 }
 
+// but a property of cirle
 struct Circle {
   int radius;
   int x, y;
