@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<title>Struct SuperStruct</title>
+		<link rel="stylesheet" type="text/css" href="../styles/ddox.css"/>
+		<link rel="stylesheet" href="../prettify/prettify.css" type="text/css"/>
+		<script type="text/javascript" src="../scripts/jquery.js">/**/</script>
+		<script type="text/javascript" src="../prettify/prettify.js">/**/</script>
+		<script type="text/javascript" src="../scripts/ddox.js">/**/</script>
+	</head>
+	<body onload="prettyPrint(); setupDdox();">
+		<nav id="main-nav">
+						<ul class="tree-view">
+							<li>
+								<a href="../superstruct.html" class="selected module">superstruct</a>
+							</li>
+						</ul>
+				<noscript>
+					<p style="color: red">The search functionality needs JavaScript enabled</p>
+				</noscript>
+				<div id="symbolSearchPane" style="display: none">
+					<p>
+						<input id="symbolSearch" type="text" placeholder="Search for symbols" onchange="performSymbolSearch(24);" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"/>
+					</p>
+	<ul id="symbolSearchResults" style="display: none"></ul>
+	<script type="application/javascript" src="../symbols.js"></script>
+	<script type="application/javascript">
+var symbolSearchRootDir = "../";
+$('#symbolSearchPane').show();
+	</script>
+				</div>
+		</nav>
+		<div id="main-contents">
+			<h1>Struct SuperStruct</h1>
+			<section>
+				<p>A Variant which exposes members that are common across all <code class="prettyprint lang-d">SubTypes</code>.
+</p>
+<section>
+<p>A <code class="prettyprint lang-d">SuperStruct!(SubTypes...)</code> wraps an <code class="prettyprint lang-d">Algebraic!(SubTypes...)</code>.  It can
+ hold a single value from any of its <code class="prettyprint lang-d">SubTypes</code>.
+</p>
+
+<p>Unlike a Variant/Algebraic, <code class="prettyprint lang-d">SuperStruct</code> exposes access to 'common' members
+ that have compatible signatures.
+</p>
+
+<p>A member is 'common' if its name describes a public function or field on
+ every one of <code class="prettyprint lang-d">SubTypes</code>. A call signature for a given member is 'compatible'
+ if, for an instance of any one of <code class="prettyprint lang-d">SubTypes</code>, that member can be called with
+ the provided set of arguments and_ all such calls have a common return type.
+</p>
+
+<p><code class="prettyprint lang-d">SuperStruct</code> ignores members beginning with "_".
+</p>
+</section>
+
+					<section>
+						<h3>Constructors</h3>
+						<table>
+							<col class="caption"/>
+							<tr>
+								<th>Name</th>
+								<th>Description</th>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.this.html" class="public">
+										<code>this</code>
+									</a>
+								</td>
+								<td>Construct and populate with an initial <a href="../superstruct/SuperStruct.this.html#value"><code class="prettyprint lang-d">value</code></a>.
+</td>
+							</tr>
+						</table>
+					</section>
+<section><h3>Example</h3>
+<p>Two disparate structs ... they can't be used interchangeably, right?
+</p>
+<pre class="code"><code class="prettyprint lang-d">import std.math, std.algorithm;
+
+struct Square {
+  float size;
+  float area() { return size * size; }
+}
+
+struct Circle {
+  float r;
+  float area() { return r * r * PI; }
+}
+
+// Or can they?
+alias Shape = SuperStruct!(Square, Circle);
+
+// look! polymorphism!
+Shape sqr = Square(2);
+Shape cir = Circle(4);
+Shape[] shapes = [ sqr, cir ];
+
+// call functions that are shared between the source types!
+assert(shapes.map!(x => x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
+
+</code></pre>
+</section>
+<section><h3>Example</h3>
+<p>Want to access fields of the underlying types? Not a problem!
+</p>
+
+<p>Are some of them properties? Not a problem!
+</p>
+<pre class="code"><code class="prettyprint lang-d">struct Square {
+  int top, left, width, height;
+}
+
+struct Circle {
+  int radius;
+  int x, y;
+
+  auto top() { return y - radius; }
+  auto top(int val) { return y = val + radius; }
+}
+
+alias Shape = SuperStruct!(Square, Circle);
+
+// if a Shape is a Circle, `top` forwards to Circle's top property
+Shape cir = Circle(4, 0, 0);
+assert(cir.top = 6);
+assert(cir.top == 6);
+
+// if a Shape is a Square, `top` forwards to Squares's top field
+Shape sqr = Square(0, 0, 4, 4);
+assert(sqr.top = 6);
+assert(sqr.top == 6);
+
+// Square.left is hidden, as Circle has no such member
+static assert(!is(typeof(sqr.left)));
+
+</code></pre>
+</section>
+
+			</section>
+			<section>
+				<h2>Authors</h2>
+<p>Ryan Roden-Corrent (<a href="https://github.com/rcorre">rcorre</a>)
+</p>
+
+			</section>
+			<section>
+				<h2>Copyright</h2>
+<p>© 2015, Ryan Roden-Corrent
+</p>
+
+			</section>
+			<section>
+				<h2>License</h2>
+<p>MIT
+</p>
+
+			</section>
+		</div>
+	</body>
+</html>

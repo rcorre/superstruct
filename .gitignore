@@ -1,0 +1,17 @@
+*.o
+*.obj
+*.a
+
+.dub
+docs.json
+__dummy.html
+__test__*
+
+# ignore for gh-pages (docs)
+src/
+test/
+dub.sdl
+dub.selections.json
+README.md
+LICENSE
+docs/
