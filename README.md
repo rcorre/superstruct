@@ -1,23 +1,48 @@
 SuperStruct
 ===
 
-[(docs)](http://rcorre.github.io/superstruct).
+- [Code on Github](http://github.com/rcorre/superstruct).
+- [Docs hosted on Github](http://rcorre.github.io/superstruct).
+- [Dub Package](http://code.dlang.org/packages/superstruct).
 
-[(dub)](http://code.dlang.org/packages/superstruct).
+Suppose you've got a few structs representing shapes, say, `Circle`, `Square`
+and `Triangle`. You want an overarching type to store any one of these shapes.
+
+```d
+alias Shape = Algebraic!(Circle, Square, Triangle)
+Shape shape = Circle(x, y, radius);
+```
+
+Ok, an `Algebraic` (or `Variant`, in general) isn't a bad choice. Now, could you
+grab the `area` of that shape for me?
+
+```d
+auto area = shape.visit!((Circle c)   => c.area,
+                         (Square s)   => s.area,
+                         (Triangle t) => t.area);
+```
+
+Alright, that works well enough. How about the `perimeter`? They all have one of
+those, don't they?
+
+```d
+auto perimeter = shape.visit!((Circle c)   => c.perimeter,
+                              (Square s)   => s.perimeter,
+                              (Triangle t) => t.perimeter);
+```
+
+Ok, how about the `center`? Notice a pattern? I did, and saw an opportunity to
+do something awesome/stupid with templates.
 
 # What is it?
 
 It's a `struct`! It's a `class`! No, its ...  `SuperStruct`!
 
-Lighter than a `class` and classier than a `struct`, `SuperClass` is the bastard
-child of
-[`wrap`](http://dlang.org/phobos/std_typecons.html#.wrap) and
-[`variant`](http://dlang.org/phobos/std_variant.html).
-
-Example time!
+This bastard child of [`wrap`](http://dlang.org/phobos/std_typecons.html#.wrap)
+and [`variant`](http://dlang.org/phobos/std_variant.html) works like an
+`Algebraic`, but exposes members that are common across the source types.
 
 ```d
-// two disparate structs ... they can't be used interchangeably, right?
 struct Square {
   float size;
   float area() { return size * size; }
@@ -28,7 +53,6 @@ struct Circle {
   float area() { return r * r * PI; }
 }
 
-// Or can they?
 alias Shape = SuperStruct!(Square, Circle);
 
 // look! polymorphism!
@@ -40,14 +64,18 @@ Shape[] shapes = [ sqr, cir ];
 assert(shapes.map!(x => x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
 ```
 
-Want to access fields of the underlying types? Not a problem!
-Are some of them properties? Not a problem!
+Notice that there is no explicit interface definition. The 'interface' forms
+organically from the common members of the source types.
+
+The interface isn't limited to methods -- common fields can be exposed as well:
 
 ```d
+// `top` is a field of Square
 struct Square {
   int top, left, width, height;
 }
 
+// but a property of cirle
 struct Circle {
   int radius;
   int x, y;
@@ -84,9 +112,8 @@ are capable of.
 To avoid repeating yourself.
 
 ```d
-
 // Compare this...
-auto alg = Algebraic!(Rect, Ellipse, Triangle)(someShape); // or a variant
+auto alg = Algebraic!(Rect, Ellipse, Triangle)(someShape);
 auto center1 = alg.visit!((Rect r)     => r.center,
                           (Ellipse e)  => e.center,
                           (Triangle t) => t.center)
@@ -97,10 +124,19 @@ auto center2 = sup.center;
 
 ## Why not use wrap?
 
-1. `wrap` does not _currently_ support structs (but a PR exists to implement this)
+`[std.typecons.wrap](http://dlang.org/phobos/std_typecons.html#.wrap)` and
+`SuperStruct` have similar, but not entirely overlapping uses.
+
+1. `wrap` does not _currently_ support structs (but a
+   [PR](https://github.com/D-Programming-Language/phobos/pull/2945) exists to
+   implement this)
 2. `wrap` allocates a class. `SuperStruct` is just a struct.
 3. `wrap` requires an explicitly defined interface. `SuperStruct` generates an
    interface automatically.
+4. `SuperStruct` requires you to specify all sub types in advance. `wrap` does
+   not.
+5. `SuperStruct` can expose common fields directly. `wrap` requires the user to
+   manually wrap fields in getter/setter properties to satisfy an interface.
 
 # How does it work?
 Given a set of 'sub types', `SuperStruct` automatically generates a 'super
