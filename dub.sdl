@@ -2,6 +2,7 @@ name        "superstruct"
 description "A superclass for value types."
 copyright   "Copyright © 2015, rcorre"
 authors     "rcorre"
+license     "MIT"
 
 configuration "library" {
   sourcePaths "src"
