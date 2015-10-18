@@ -5,7 +5,7 @@ SuperStruct
 - [Docs hosted on Github](http://rcorre.github.io/superstruct).
 - [Dub Package](http://code.dlang.org/packages/superstruct).
 
-Suppose you've got a few structs representing shapes, say, `Circle`, `Square`
+Suppose you've got a few structs representing shapes, `Circle`, `Square`
 and `Triangle`. You want an overarching type to store any one of these shapes.
 
 ```d
@@ -31,8 +31,8 @@ auto perimeter = shape.visit!((Circle c)   => c.perimeter,
                               (Triangle t) => t.perimeter);
 ```
 
-Ok, how about the `center`? Noticing a pattern I started to wonder if some
-(ab)use of templates could strip away the boilerplate.
+At this point, you should be yelling 'This reeks of boilerplate! Show me some
+template magic to solve all my problems!'
 
 # What is it?
 
@@ -119,12 +119,13 @@ auto center1 = alg.visit!((Rect r)     => r.center,
                           (Triangle t) => t.center)
 
 // To this! Easier, right?
+auto sup = SuperStruct!(Rect, Ellipse, Triangle)(someShape);
 auto center2 = sup.center;
 ```
 
 ## Why not use wrap?
 
-`[std.typecons.wrap](http://dlang.org/phobos/std_typecons.html#.wrap)` and
+[`std.typecons.wrap`](http://dlang.org/phobos/std_typecons.html#.wrap) and
 `SuperStruct` have similar, but not entirely overlapping uses.
 
 1. `wrap` does not _currently_ support structs (but a
@@ -133,10 +134,11 @@ auto center2 = sup.center;
 2. `wrap` allocates a class. `SuperStruct` is just a struct.
 3. `wrap` requires an explicitly defined interface. `SuperStruct` generates an
    interface automatically.
-4. `SuperStruct` requires you to specify all sub types in advance. `wrap` does
-   not.
-5. `SuperStruct` can expose common fields directly. `wrap` requires the user to
+4. `SuperStruct` can expose common fields directly. `wrap` requires the user to
    manually wrap fields in getter/setter properties to satisfy an interface.
+
+If you actually need a interface that can be implemented without knowing all the
+source types in advance, then you probably want `wrap`.
 
 # What does it expose?
 
@@ -202,6 +204,7 @@ struct FooBar {
   auto a(Args...)(Args args) {
     return visitor!"a"(_value, args);
   }
+
   auto b(Args...)(Args args) {
     return visitor!"b"(_value, args);
   }
