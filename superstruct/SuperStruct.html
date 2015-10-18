@@ -34,29 +34,29 @@ $('#symbolSearchPane').show();
 		<div id="main-contents">
 			<h1>Struct SuperStruct</h1>
 			<section>
-				<p>A Variant which exposes members that are common across all <code class="prettyprint lang-d">SubTypes</code>.
+				<p> A Variant which exposes members that are common across all <code class="prettyprint lang-d">SubTypes</code>.
 </p>
 <section>
-<p>A <code class="prettyprint lang-d">SuperStruct!(SubTypes...)</code> wraps an <code class="prettyprint lang-d">Algebraic!(SubTypes...)</code>.  It can
+<p> A <code class="prettyprint lang-d"><code class="prettyprint lang-d">SuperStruct</code>!(SubTypes...)</code> wraps an <code class="prettyprint lang-d">Algebraic!(SubTypes...)</code>.  It can
  hold a single value from any of its <code class="prettyprint lang-d">SubTypes</code>.
 </p>
 
-<p>Unlike a Variant/Algebraic, <code class="prettyprint lang-d">SuperStruct</code> exposes access to 'common' members
+<p> Unlike a Variant/Algebraic, <code class="prettyprint lang-d"><code class="prettyprint lang-d">SuperStruct</code></code> exposes access to 'common' members
  that have compatible signatures.
 </p>
 
-<p>A member is 'common' if its name describes a public function or field on
+<p> A member is 'common' if its name describes a public function or field on
  every one of <code class="prettyprint lang-d">SubTypes</code>. A call signature for a given member is 'compatible'
  if, for an instance of any one of <code class="prettyprint lang-d">SubTypes</code>, that member can be called with
  the provided set of arguments and_ all such calls have a common return type.
 </p>
 
-<p><code class="prettyprint lang-d">SuperStruct</code> ignores members beginning with "_".
+<p> <code class="prettyprint lang-d"><code class="prettyprint lang-d">SuperStruct</code></code> ignores members beginning with "_".
 </p>
 </section>
 
 					<section>
-						<h3>Constructors</h3>
+						<h3>Templates</h3>
 						<table>
 							<col class="caption"/>
 							<tr>
@@ -69,73 +69,58 @@ $('#symbolSearchPane').show();
 										<code>this</code>
 									</a>
 								</td>
-								<td>Construct and populate with an initial <a href="../superstruct/SuperStruct.this.html#value"><code class="prettyprint lang-d">value</code></a>.
+								<td> Construct and populate with an initial value.
 </td>
 							</tr>
 						</table>
 					</section>
 <section><h3>Example</h3>
-<p>Two disparate structs ... they can't be used interchangeably, right?
+<p>If all types have a matching field, it gets exposed:
 </p>
-<pre class="code"><code class="prettyprint lang-d">import std.math, std.algorithm;
-
-struct Square {
-  float size;
-  float area() { return size * size; }
-}
-
-struct Circle {
-  float r;
-  float area() { return r * r * PI; }
-}
-
-// Or can they?
-alias Shape = SuperStruct!(Square, Circle);
-
-// look! polymorphism!
-Shape sqr = Square(2);
-Shape cir = Circle(4);
-Shape[] shapes = [ sqr, cir ];
-
-// call functions that are shared between the source types!
-assert(shapes.map!(x => x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
-
-</code></pre>
+<pre class="code prettyprint lang-d">struct Foo { int a; }
+struct Bar { int a; }
+auto foobar = SuperStruct!(Foo, Bar)(Foo(1));
+foobar.a = 5;
+assert(foobar.a == 5);
+</pre>
 </section>
 <section><h3>Example</h3>
-<p>Want to access fields of the underlying types? Not a problem!
+<p>If all types have a matching method, all compatible overloads are exposed:
 </p>
-
-<p>Are some of them properties? Not a problem!
-</p>
-<pre class="code"><code class="prettyprint lang-d">struct Square {
-  int top, left, width, height;
+<pre class="code prettyprint lang-d">struct Foo {
+  int fun(int i) { return i; }
+  int fun(int a, int b) { return a + b; }
+}
+struct Bar {
+  int fun(int i) { return i; }
+  int fun(int a, int b) { return a + b; }
+  int fun(int a, int b, int c) { return a + b + c; }
 }
 
-struct Circle {
-  int radius;
-  int x, y;
-
-  auto top() { return y - radius; }
-  auto top(int val) { return y = val + radius; }
+auto foobar = SuperStruct!(Foo, Bar)(Foo());
+assert(foobar.fun(1)    == 1);
+assert(foobar.fun(1, 2) == 3);
+assert(!__traits(compiles, foobar.fun(1,2,3))); // no such overload on Foo
+</pre>
+</section>
+<section><h3>Example</h3>
+<p>If a name is a field on one type and a method on another, it is exposed:
+</p>
+<pre class="code prettyprint lang-d">struct Foo { int a; }
+struct Bar {
+  private int _a;
+  int a() { return _a; }
+  int a(int val) { return _a = val; }
 }
 
-alias Shape = SuperStruct!(Square, Circle);
+auto foo = SuperStruct!(Foo, Bar)(Foo());
+foo.a = 5;          // sets Foo.a
+assert(foo.a == 5); // gets Foo.a
 
-// if a Shape is a Circle, `top` forwards to Circle's top property
-Shape cir = Circle(4, 0, 0);
-assert(cir.top = 6);
-assert(cir.top == 6);
-
-// if a Shape is a Square, `top` forwards to Squares's top field
-Shape sqr = Square(0, 0, 4, 4);
-assert(sqr.top = 6);
-assert(sqr.top == 6);
-
-// Square.left is hidden, as Circle has no such member
-static assert(!is(typeof(sqr.left)));
-
-</code></pre>
+auto bar = SuperStruct!(Foo, Bar)(Bar());
+bar.a = 5;          // invokes Bar.a(int val)
+assert(bar.a == 5); // invokes Bar.a()
+</pre>
 </section>
 
 			</section>

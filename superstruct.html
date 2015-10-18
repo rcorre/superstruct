@@ -33,12 +33,73 @@ $('#symbolSearchPane').show();
 		</nav>
 		<div id="main-contents">
 			<h1>Module superstruct</h1>
-			<p>This module provides a single type, <code class="prettyprint lang-d"><a href="./superstruct/SuperStruct.html">SuperStruct</a></code>.
+			<p> This module provides a single type, <code class="prettyprint lang-d"><a href="./superstruct/SuperStruct.html"><code class="prettyprint lang-d">SuperStruct</code></a></code>.
 </p>
 <section>
 </section>
 
-			<section></section>
+			<section><section><h2>Example</h2>
+<p>Two disparate structs ... they can't be used interchangeably, right?
+</p>
+<pre class="code prettyprint lang-d">import std.math, std.algorithm;
+
+struct Square {
+  float size;
+  float area() { return size * size; }
+}
+
+struct Circle {
+  float r;
+  float area() { return r * r * PI; }
+}
+
+// Or can they?
+alias Shape = <a href="./superstruct/SuperStruct.html">SuperStruct</a>!(Square, Circle);
+
+// look! polymorphism!
+Shape sqr = Square(2);
+Shape cir = Circle(4);
+Shape[] shapes = [ sqr, cir ];
+
+// call functions that are shared between the source types!
+assert(shapes.map!(x => x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
+</pre>
+</section>
+<section><h2>Example</h2>
+<p>Want to access fields of the underlying types? Not a problem!
+</p>
+
+<p>Are some of them properties? Not a problem!
+</p>
+<pre class="code prettyprint lang-d">struct Square {
+  int top, left, width, height;
+}
+
+struct Circle {
+  int radius;
+  int x, y;
+
+  auto top() { return y - radius; }
+  auto top(int val) { return y = val + radius; }
+}
+
+alias Shape = <a href="./superstruct/SuperStruct.html">SuperStruct</a>!(Square, Circle);
+
+// if a Shape is a Circle, `top` forwards to Circle's top property
+Shape cir = Circle(4, 0, 0);
+assert(cir.top = 6);
+assert(cir.top == 6);
+
+// if a Shape is a Square, `top` forwards to Squares's top field
+Shape sqr = Square(0, 0, 4, 4);
+assert(sqr.top = 6);
+assert(sqr.top == 6);
+
+// Square.left is hidden, as Circle has no such member
+static assert(!is(typeof(sqr.left)));
+</pre>
+</section>
+</section>
 			<section>
 				<h2>Structs</h2>
 				<table>
@@ -53,7 +114,7 @@ $('#symbolSearchPane').show();
 								<code>SuperStruct</code>
 							</a>
 						</td>
-						<td>A Variant which exposes members that are common across all <code class="prettyprint lang-d">SubTypes</code>.
+						<td> A Variant which exposes members that are common across all <code class="prettyprint lang-d">SubTypes</code>.
 </td>
 					</tr>
 				</table>

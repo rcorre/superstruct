@@ -2,5 +2,6 @@
 var symbols = [
 {name: 'superstruct', kind: "module", path: './superstruct.html', attributes: []},
 {name: 'superstruct.SuperStruct', kind: "structdeclaration", path: './superstruct/SuperStruct.html', attributes: []},
-{name: 'superstruct.SuperStruct.this', kind: "functiondeclaration", path: './superstruct/SuperStruct.this.html', attributes: []},
+{name: 'superstruct.SuperStruct.this', kind: "templatedeclaration", path: './superstruct/SuperStruct.this.html', attributes: []},
+{name: 'superstruct.SuperStruct.this.this', kind: "functiondeclaration", path: './superstruct/SuperStruct.this.this.html', attributes: []},
 ];
