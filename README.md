@@ -31,8 +31,8 @@ auto perimeter = shape.visit!((Circle c)   => c.perimeter,
                               (Triangle t) => t.perimeter);
 ```
 
-Ok, how about the `center`? Notice a pattern? I did, and saw an opportunity to
-do something awesome/stupid with templates.
+Ok, how about the `center`? Noticing a pattern I started to wonder if some
+(ab)use of templates could strip away the boilerplate.
 
 # What is it?
 
@@ -138,65 +138,83 @@ auto center2 = sup.center;
 5. `SuperStruct` can expose common fields directly. `wrap` requires the user to
    manually wrap fields in getter/setter properties to satisfy an interface.
 
-# How does it work?
-Given a set of 'sub types', `SuperStruct` automatically generates a 'super
-type' consisting of the common members.
+# What does it expose?
 
-Given the structs `Foo` and `Bar`:
+- If all types have a matching field, it gets exposed:
+
+```d
+struct Foo { int a; }
+struct Bar { int a; }
+auto foobar = SuperStruct!(Foo, Bar)(Foo(1));
+foobar.a = 5;
+assert(foobar.a == 5);
+```
+
+- If all types have a matching method, all compatible overloads are exposed:
 
 ```d
 struct Foo {
-  int    a;
-  string b;
-  real   x;
-  float  fun(int i, string s) { }
-  int    meh(int i) { }
+  int fun(int i) { return i; }
+  int fun(int a, int b) { return a + b; }
+}
+struct Bar {
+  int fun(int i) { return i; }
+  int fun(int a, int b) { return a + b; }
+  int fun(int a, int b, int c) { return a + b + c; }
 }
 
-struct Bar {
-  int    a;
-  string b() { }
-  real   y;
-  int    fun(int i, string s) { }
-  int    meh(float f) { }
-}
+auto foobar = SuperStruct!(Foo, Bar)(Foo());
+assert(foobar.fun(1)    == 1);
+assert(foobar.fun(1, 2) == 3);
+assert(!__traits(compiles, foobar.fun(1,2,3))); // no such overload on Foo
 ```
 
-You can think of `SuperStruct!(Foo, Bar)` as:
+- If a name refers to a field on one type and a method on another, it is exposed
+  if the field and the method have compatible signatures:
 
 ```d
-struct FooBar {
-  int    a() { }
-  int    a(int arg) { }
-  string b() { }
-  int    fun(int i, string s) { }
-  float  fun(float f) { }
-  int    meh(int f) { }
+struct Foo { int a; }
+struct Bar {
+  private int _a;
+  int a() { return _a; }
+  int a(int val) { return _a = val; }
 }
+
+auto foo = SuperStruct!(Foo, Bar)(Foo());
+foo.a = 5;          // sets Foo.a
+assert(foo.a == 5); // gets Foo.a
+
+auto bar = SuperStruct!(Foo, Bar)(Bar());
+bar.a = 5;          // invokes Bar.a(int val)
+assert(bar.a == 5); // invokes Bar.a()
 ```
 
-- `a` is an int field on both `Foo` and `Bar`, so it is exposed.
-- `b` is a field on `Foo`, but only a getter on `Bar`, so we only expose the getter.
-- `fun` is has a common signature on both `Foo` and `Bar`, so it is exposed.
-  However, note that `Foo.fun` returns a float and `Bar.fun` returns an `int`.
-  The exposed `fun` returns the `CommonType`, which is `int`.
-- `meh` is exposed, but only accepts an `int` as a parameter.
-  While `Bar.meh` could accept a float, `Foo.meh` cannot (implicitly) do so.
+- Private members are not exposed.
 
-# How does it REALLY work?
-That example I showed you of the generated struct for `SuperStruct!(Foo,Bar)`?
-That was a lie. You can _think_ of it looking like that to picture the interface
-it exposes, but it _actually_ looks more like this:
+# How does it work?
+Given the types `Foo` and `Bar` with members `a` and `b`,
+`SuperStruct!(Foo, Bar)` looks something like:
 
 ```d
 struct FooBar {
   private Algebraic!(Foo,Bar) _value;
 
-  auto a(Args...)(Args args) if (is(typeof(_value.visitor!"a"(args)))) { }
-  auto b(Args...)(Args args) if (is(typeof(_value.visitor!"b"(args)))) { }
-  // and so on ...
+  auto a(Args...)(Args args) {
+    return visitor!"a"(_value, args);
+  }
+  auto b(Args...)(Args args) {
+    return visitor!"b"(_value, args);
+  }
 }
 ```
 
-Where `visitor` is a little helper that tries to forward the call to whatever
-`_value` is holding.
+Where `visitor` is a helper that tries to forward the call to a matching member
+on whatever `_value` is holding. If whatever args you pass don't form a valid
+call on the given member for every subtype, it won't compile. If they all do
+form valid calls but there is no common return type for those calls, it won't
+compile.
+
+This means that 'commonality' of members is checked on a case-by-case
+basis. It _could_ try to figure out if a member would _never_ be callable and
+simply omit it, but currently does not (instead it just generates a variadic
+template that is impossible to instantiate).

@@ -7,41 +7,6 @@
  */
 module superstruct;
 
-import std.meta;
-import std.traits;
-import std.variant;
-
-/** A Variant which exposes members that are common across all `SubTypes`.
- *
- * A `SuperStruct!(SubTypes...)` wraps an `Algebraic!(SubTypes...)`.  It can
- * hold a single value from any of its `SubTypes`.
- *
- * Unlike a Variant/Algebraic, `SuperStruct` exposes access to 'common' members
- * that have compatible signatures.
- *
- * A member is 'common' if its name describes a public function or field on
- * every one of `SubTypes`. A call signature for a given member is 'compatible'
- * if, for an instance of any one of `SubTypes`, that member can be called with
- * the provided set of arguments _and_ all such calls have a common return type.
- *
- * `SuperStruct` ignores members beginning with "__".
- */
-struct SuperStruct(SubTypes...) {
-  private Algebraic!SubTypes _value;
-
-  /**
-   * Construct and populate with an initial value.
-   * Params:
-   *   value = something implicitly covertible to of one of the `SubTypes`.
-   */
-  this(V)(V value) if (is(typeof(_value = value))) {
-    _value = value;
-  }
-
-  // the meta-magic for exposing common members
-  mixin(allVisitorCode!SubTypes);
-}
-
 /// Two disparate structs ... they can't be used interchangeably, right?
 unittest {
   import std.math, std.algorithm;
@@ -97,6 +62,86 @@ unittest {
 
   // Square.left is hidden, as Circle has no such member
   static assert(!is(typeof(sqr.left)));
+}
+
+import std.meta;
+import std.traits;
+import std.variant;
+
+/** A Variant which exposes members that are common across all `SubTypes`.
+ *
+ * A `SuperStruct!(SubTypes...)` wraps an `Algebraic!(SubTypes...)`.  It can
+ * hold a single value from any of its `SubTypes`.
+ *
+ * Unlike a Variant/Algebraic, `SuperStruct` exposes access to 'common' members
+ * that have compatible signatures.
+ *
+ * A member is 'common' if its name describes a public function or field on
+ * every one of `SubTypes`. A call signature for a given member is 'compatible'
+ * if, for an instance of any one of `SubTypes`, that member can be called with
+ * the provided set of arguments _and_ all such calls have a common return type.
+ *
+ * `SuperStruct` ignores members beginning with "__".
+ */
+struct SuperStruct(SubTypes...) {
+  private Algebraic!SubTypes _value;
+
+  /**
+   * Construct and populate with an initial value.
+   * Params:
+   *   value = something implicitly covertible to of one of the `SubTypes`.
+   */
+  this(V)(V value) if (is(typeof(_value = value))) {
+    _value = value;
+  }
+
+  // the meta-magic for exposing common members
+  mixin(allVisitorCode!SubTypes);
+}
+
+/// If all types have a matching field, it gets exposed:
+unittest {
+  struct Foo { int a; }
+  struct Bar { int a; }
+  auto foobar = SuperStruct!(Foo, Bar)(Foo(1));
+  foobar.a = 5;
+  assert(foobar.a == 5);
+}
+
+/// If all types have a matching method, all compatible overloads are exposed:
+unittest {
+  struct Foo {
+    int fun(int i) { return i; }
+    int fun(int a, int b) { return a + b; }
+  }
+  struct Bar {
+    int fun(int i) { return i; }
+    int fun(int a, int b) { return a + b; }
+    int fun(int a, int b, int c) { return a + b + c; }
+  }
+
+  auto foobar = SuperStruct!(Foo, Bar)(Foo());
+  assert(foobar.fun(1)    == 1);
+  assert(foobar.fun(1, 2) == 3);
+  assert(!__traits(compiles, foobar.fun(1,2,3))); // no such overload on Foo
+}
+
+/// If a name is a field on one type and a method on another, it is exposed:
+unittest {
+  struct Foo { int a; }
+  struct Bar {
+    private int _a;
+    int a() { return _a; }
+    int a(int val) { return _a = val; }
+  }
+
+  auto foo = SuperStruct!(Foo, Bar)(Foo());
+  foo.a = 5;          // sets Foo.a
+  assert(foo.a == 5); // gets Foo.a
+
+  auto bar = SuperStruct!(Foo, Bar)(Bar());
+  bar.a = 5;          // invokes Bar.a(int val)
+  assert(bar.a == 5); // invokes Bar.a()
 }
 
 private:
