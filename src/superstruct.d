@@ -309,7 +309,8 @@ string allVisitorCode(SubTypes...)() {
   enum allMembers(T) = __traits(allMembers, T);
 
   // ignore __ctor, __dtor, and the like
-  enum shouldExpose(string name) = name.length < 2 || name[0..2] != "__";
+  enum shouldExpose(string name) = (name.length < 2 || name[0..2] != "__") &&
+                                   (name != "this");
 
   string str;
 
