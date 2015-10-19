@@ -249,10 +249,13 @@ string memberVisitorCode(string name)() {
   import std.string : format;
 
   return q{
-    auto %s(Args...)(Args args) {
-      return visitor!"%s"(_value, args);
+    template %s(TemplateArgs...) {
+      auto helper(Args...)(Args args) {
+        return visitor!("%s", TemplateArgs)(_value, args);
+      }
+      alias %s = helper;
     }
-  }.format(name, name);
+  }.format(name, name, name);
 }
 
 unittest {
