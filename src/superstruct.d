@@ -105,19 +105,30 @@ private:
  * Compiles only if such a call is possible on every type.
  * Compiles only if the return values of all such calls share a common type.
  */
-auto visitor(string member, V, Args...)(ref V var, Args args) {
-  static if (Args.length == 0)      // field or 'getter' (no-args function)
-    enum expression = "ptr."~member;
-  else static if (Args.length == 1) // field or 'setter' (1-arg function)
-    enum expression = "ptr."~member~"=args[0]";
-  else                              // 2+ arg function
-    enum expression = "ptr."~member~"(args)";
+template visitor(string member, TemplateArgs...) {
+  // if we got some explicit compile time args, we need to pass them along.
+  // otherwise, omit the !() as an empty template arg list can cause issues
+  static if (TemplateArgs.length)
+    enum bang = "!(TemplateArgs)";
+  else
+    enum bang = "";
 
-  foreach(T ; var.AllowedTypes)
-    if (auto ptr = var.peek!T)
-      return mixin(expression);
+  auto helper(V, Args...)(ref V var, Args args) {
+    static if (Args.length == 0)      // field or 'getter' (no-args function)
+      enum expression = "ptr."~member~bang;
+    else static if (Args.length == 1) // field or 'setter' (1-arg function)
+      enum expression = "ptr."~member~bang~"=args[0]";
+    else                              // 2+ arg function
+      enum expression = "ptr."~member~bang~"(args)";
 
-  assert(0, "Variant holds no value");
+    foreach(T ; var.AllowedTypes)
+      if (auto ptr = var.peek!T)
+        return mixin(expression);
+
+    assert(0, "Variant holds no value");
+  }
+
+  alias visitor = helper;
 }
 
 unittest {
@@ -175,6 +186,56 @@ unittest {
 
   // 3-param overload of 'assign' only exists on Bar
   static assert(!__traits(compiles, visitor!"assign"(bar, 2, 6, 8)));
+}
+
+// pass along template arguments
+unittest {
+  struct Foo {
+    int val;
+
+    auto noargs(alias fn)() { return fn(val); }
+    auto onearg(alias fn)(int i) { return fn(i);   }
+    auto twofns(alias fn1, alias fn2)(int i) { return fn2(fn1(i)); }
+
+    auto onetype(T)(T arg) { return val + arg; }
+    auto twotype(T, V)(T t, V v) { return val + t + v; }
+  }
+
+  struct Bar {
+    int val;
+
+    auto noargs(alias fn)() { return fn(val); }
+    auto onearg(alias fn)(int i) { return fn(i);   }
+    auto twofns(alias fn1, alias fn2)(int i) { return fn2(fn1(i)); }
+
+    auto onetype(T)(T arg) { return val + arg; }
+    auto twotype(T, V)(T t, V v) { return val + t + v; }
+  }
+
+  alias FooBar = Algebraic!(Foo, Bar);
+  FooBar fb = Foo(3);
+
+  // need to use a static fn here due to unrelated issue:
+  // cannot use local 'add1' as parameter to non-global template
+  static auto add1 = (int a) => a + 1;
+  static auto add2 = (int a) => a + 2;
+
+  assert(fb.visitor!("noargs", add1)()        == 4); // 3 + 1
+  assert(fb.visitor!("onearg", add1)(5)       == 6); // 5 + 1
+  assert(fb.visitor!("twofns", add1, add2)(5) == 8); // 5 + 1 + 2
+
+  // implicit type args
+  assert(fb.visitor!("onetype")(5)      == 8);   // 3 + 5
+  assert(fb.visitor!("twotype")(5, 7)   == 15);  // 3 + 5 + 7
+  assert(fb.visitor!("twotype")(5f, 7f) == 15f); // 3 + 5 + 7
+
+  // explicit type args
+  assert(fb.visitor!("onetype", int)(5)             == 8);   // 3 + 5
+  assert(fb.visitor!("twotype", int)(5, 7)          == 15);  // 3 + 5 + 7
+  assert(fb.visitor!("twotype", float, float)(5, 7) == 15f); // 3 + 5 + 7
+
+  // only specify some type args
+  assert(fb.visitor!("twotype", float)(5, 7) == 15f); // 3 + 5 + 7
 }
 
 /*
