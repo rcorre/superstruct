@@ -62,32 +62,68 @@ unittest {
   assert(fbs.fun("asdf", 6) == "");
 }
 
-/* Currently SuperStruct cannot forward templated functions whose compile-time
- * args describe anything other than the types of the runtime args.
- *
- * For example, getVal(T)() cannot be forwarded, as SuperStruct tries to
- * translate it to getVal(T)(T val) as it thinks T describes an argument type.
- *
- */
-/++
+// simple templated function
+unittest {
+  struct Foo {
+    auto str(T)() { return T.stringof ~ "-foo"; }
+  }
+
+  struct Bar {
+    auto str(T)() { return T.stringof ~ "-bar"; }
+  }
+
+  SuperStruct!(Foo, Bar) f = Foo();
+  SuperStruct!(Foo, Bar) b = Bar();
+
+  assert(f.str!int  == "int-foo");
+  assert(b.str!real == "real-bar");
+}
+
 unittest {
   struct Foo {
     int val;
 
-    auto getVal(T)() {
-      return cast(T) val;
-    }
+    auto noargs(alias fn)() { return fn(val); }
+    auto onearg(alias fn)(int i) { return fn(i);   }
+    auto twofns(alias fn1, alias fn2)(int i) { return fn2(fn1(i)); }
+
+    auto onetype(T)(T arg) { return val + arg; }
+    auto twotype(T, V)(T t, V v) { return val + t + v; }
   }
 
   struct Bar {
     int val;
 
-    auto getVal(T)() {
-      return cast(T) val;
-    }
+    auto noargs(alias fn)() { return fn(val); }
+    auto onearg(alias fn)(int i) { return fn(i);   }
+    auto twofns(alias fn1, alias fn2)(int i) { return fn2(fn1(i)); }
+
+    auto onetype(T)(T arg) { return val + arg; }
+    auto twotype(T, V)(T t, V v) { return val + t + v; }
   }
 
-  SuperStruct!(Foo, Bar) fb = Foo(1);
-  assert(fb.getVal!int == 1);
+  alias FooBar = SuperStruct!(Foo, Bar);
+  FooBar fb = Foo(3);
+
+  // need to use a static fn here due to unrelated issue:
+  // cannot use local 'add1' as parameter to non-global template
+  static auto add1 = (int a) => a + 1;
+  static auto add2 = (int a) => a + 2;
+
+  assert(fb.noargs!(add1)()        == 4); // 3 + 1
+  assert(fb.onearg!(add1)(5)       == 6); // 5 + 1
+  assert(fb.twofns!(add1, add2)(5) == 8); // 5 + 1 + 2
+
+  // implicit type args
+  assert(fb.onetype(5)      == 8);   // 3 + 5
+  assert(fb.twotype(5, 7)   == 15);  // 3 + 5 + 7
+  assert(fb.twotype(5f, 7f) == 15f); // 3 + 5 + 7
+
+  // explicit type args
+  assert(fb.onetype!(int)(5)             == 8);   // 3 + 5
+  assert(fb.twotype!(int)(5, 7)          == 15);  // 3 + 5 + 7
+  assert(fb.twotype!(float, float)(5, 7) == 15f); // 3 + 5 + 7
+
+  // only specify some type args
+  assert(fb.twotype!(float)(5, 7) == 15f); // 3 + 5 + 7
 }
-++/
