@@ -38,6 +38,10 @@ struct SuperStruct(SubTypes...) {
     _value = value;
   }
 
+  auto opAssign(V)(V value) if (is(typeof(_value = value))) {
+    return _value = value;
+  }
+
   // the meta-magic for exposing common members
   mixin(allVisitorCode!SubTypes);
 }
@@ -86,17 +90,17 @@ unittest {
   alias Shape = SuperStruct!(Square, Circle);
 
   // if a Shape is a Circle, `top` forwards to Circle's top property
-  Shape cir = Circle(4, 0, 0);
-  assert(cir.top = 6);
-  assert(cir.top == 6);
+  Shape someShape = Circle(4, 0, 0);
+  assert(someShape.top = 6);
+  assert(someShape.top == 6);
 
   // if a Shape is a Square, `top` forwards to Squares's top field
-  Shape sqr = Square(0, 0, 4, 4);
-  assert(sqr.top = 6);
-  assert(sqr.top == 6);
+  someShape = Square(0, 0, 4, 4);
+  assert(someShape.top = 6);
+  assert(someShape.top == 6);
 
   // Square.left is hidden, as Circle has no such member
-  static assert(!is(typeof(sqr.left)));
+  static assert(!is(typeof(someShape.left)));
 }
 
 private:
