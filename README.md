@@ -194,30 +194,28 @@ assert(bar.a == 5); // invokes Bar.a()
 - Private members are not exposed.
 
 # How does it work?
-Given the types `Foo` and `Bar` with members `a` and `b`,
-`SuperStruct!(Foo, Bar)` looks something like:
+`SuperStruct` uses a catch-all `opDispatch` to forward members to the underlying
+types.
 
 ```d
-struct FooBar {
-  private Algebraic!(Foo,Bar) _value;
-
-  auto a(Args...)(Args args) {
-    return visitor!"a"(_value, args);
-  }
-
-  auto b(Args...)(Args args) {
-    return visitor!"b"(_value, args);
+template opDispatch(string op) {
+  template opDispatch(TemplateArgs...) {
+    auto opDispatch(Args...)(Args args) {
+      return visitor!(op, TemplateArgs)(_value, args);
+    }
   }
 }
 ```
 
-Where `visitor` is a helper that tries to forward the call to a matching member
-on whatever `_value` is holding. If whatever args you pass don't form a valid
-call on the given member for every subtype, it won't compile. If they all do
-form valid calls but there is no common return type for those calls, it won't
-compile.
+The first layer catches the operator, the second grabs any _explicit_
+compile-time parameters (e.g. lambdas), and the third layer grabs any number of
+runtime parameters.
 
-This means that 'commonality' of members is checked on a case-by-case
-basis. It _could_ try to figure out if a member would _never_ be callable and
-simply omit it, but currently does not (instead it just generates a variadic
-template that is impossible to instantiate).
+Only the explicit compile-time parameters are passed along to the underlying
+members, as `Args` can be figured out from the arguments themselves.
+
+Here, `visitor` is a helper that tries to forward the call to a matching member
+on whatever `_value` (an `Algebraic` of the source types) is holding. If
+whatever args you pass don't form a valid call on the given member for every
+subtype, it won't compile. If they all do form valid calls but there is no
+common return type for those calls, it won't compile.

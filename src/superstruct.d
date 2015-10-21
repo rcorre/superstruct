@@ -99,8 +99,14 @@ struct SuperStruct(SubTypes...) {
     return _value = value;
   }
 
-  // the meta-magic for exposing common members
-  mixin(allVisitorCode!SubTypes);
+  /// Forward all members and template instantiations to the contained value.
+  template opDispatch(string op) {
+    template opDispatch(TemplateArgs...) {
+      auto opDispatch(Args...)(Args args) {
+        return visitor!(op, TemplateArgs)(_value, args);
+      }
+    }
+  }
 }
 
 /// If all types have a matching field, it gets exposed:
@@ -146,6 +152,30 @@ unittest {
   auto bar = SuperStruct!(Foo, Bar)(Bar());
   bar.a = 5;          // invokes Bar.a(int val)
   assert(bar.a == 5); // invokes Bar.a()
+}
+
+/// Templated members can be forwarded too:
+unittest {
+  struct Foo {
+    int val;
+    auto transmorgrify(alias fn1, alias fn2)() {
+      return fn2(fn2(val));
+    }
+  }
+
+  struct Bar {
+    auto transmorgrify(alias fn1, alias fn2)() { return 0; }
+  }
+
+  static auto add1 = (int a) => a + 1;
+
+  alias FooBar = SuperStruct!(Foo, Bar);
+
+  FooBar f = Foo(3);
+  assert(f.transmorgrify!(add1, add1) == 5); // 3 + 1 + 1
+
+  FooBar b = Bar();
+  assert(b.transmorgrify!(add1, add1) == 0);
 }
 
 private:
@@ -285,162 +315,4 @@ unittest {
 
   // only specify some type args
   assert(fb.visitor!("twotype", float)(5, 7) == 15f); // 3 + 5 + 7
-}
-
-/*
- * Generate a templated function to expose access to a given member across all
- * types that could be stored in the Variant `_value`.
- * For any given call signature, this template will instantiate only if the
- * matching member on every subtype is callable with such a signature _and_ if
- * all such calls have a common return type.
- */
-string memberVisitorCode(string name)() {
-  import std.string : format;
-
-  return q{
-    template %s(TemplateArgs...) {
-      auto helper(Args...)(Args args) {
-        return visitor!("%s", TemplateArgs)(_value, args);
-      }
-      alias %s = helper;
-    }
-  }.format(name, name, name);
-}
-
-unittest {
-  struct Foo {
-    int a;
-    int b;
-    int c;
-    int d;
-    int e;
-  }
-
-  struct Bar {
-    int    a;
-    real   b;
-    int    c() { return 1; }        // getter only
-    string d;                       // incompatible type
-    int    e(int val) { return 0; } // setter only
-  }
-
-  struct FooBar {
-    alias Store = Algebraic!(Foo, Bar);
-    Store _value;
-
-    this(T)(T t) { _value = t; }
-
-    mixin(memberVisitorCode!("a"));
-    mixin(memberVisitorCode!("b"));
-    mixin(memberVisitorCode!("c"));
-    mixin(memberVisitorCode!("d"));
-    mixin(memberVisitorCode!("e"));
-  }
-
-  FooBar fb = Foo(1);
-
-  static assert(is(typeof(fb.a()) == int));  // both are int
-  static assert(is(typeof(fb.b()) == real)); // real is common type of (int, real)
-  static assert(is(typeof(fb.c()) == int));  // field on Foo, function on Bar
-
-  static assert( is(typeof(fb.a = 5) == int )); // both are int
-  static assert( is(typeof(fb.b = 5) == real)); // real is common type of (int, real)
-  static assert( is(typeof(fb.e = 5) == int )); // field on Foo, function on Bar
-
-  static assert(!is(typeof(fb.b = 5.0))); // type mismatch
-  static assert(!is(typeof(fb.c = 5  ))); // getter only
-  static assert(!is(typeof(fb.d = 5  ))); // incompatible types
-  static assert(!is(typeof(fb.d = 5.0))); // incompatible types
-}
-
-/*
- * Generate a string containing the `memberVisitorCode` for every name in the
- * union of all members across SubTypes.
- */
-string allVisitorCode(SubTypes...)() {
-  enum allMembers(T) = __traits(allMembers, T);
-
-  // ignore __ctor, __dtor, and the like
-  enum shouldExpose(string name) = (name.length < 2 || name[0..2] != "__") &&
-                                   (name != "this");
-
-  string str;
-
-  foreach(member ; NoDuplicates!(staticMap!(allMembers, SubTypes)))
-    static if (shouldExpose!member)
-      str ~= memberVisitorCode!(member);
-
-  return str;
-}
-
-unittest {
-  struct Foo {
-    int a;
-    int b;
-    int c;
-    int d;
-    int e;
-  }
-
-  struct Bar {
-    int    a;
-    real   b;
-    int    c() { return 1; }        // getter only
-    string d;                       // incompatible type
-    int    e(int val) { return 0; } // setter only
-  }
-
-  struct FooBar {
-    alias Store = Algebraic!(Foo, Bar);
-    Store _value;
-
-    this(T)(T t) { _value = t; }
-
-    mixin(allVisitorCode!(Foo, Bar));
-  }
-
-  FooBar fb = Foo(1);
-
-  // getters
-  static assert( is(typeof(fb.a()) == int));  // both are int
-  static assert( is(typeof(fb.b()) == real)); // real is common type of (int, real)
-  static assert( is(typeof(fb.c()) == int));  // field on Foo, function on Bar
-  static assert(!is(typeof(fb.d())       ));  // no common type between (int, string)
-  static assert(!is(typeof(fb.e())       ));  // setter only
-
-  // setters
-  static assert( is(typeof(fb.a = 5) == int )); // both are int
-  static assert( is(typeof(fb.b = 5) == real)); // real is common type of (int, real)
-  static assert( is(typeof(fb.e = 5) == int )); // field on Foo, function on Bar
-
-  static assert(!is(typeof(fb.b = 5.0))); // type mismatch
-  static assert(!is(typeof(fb.c = 5  ))); // getter only
-  static assert(!is(typeof(fb.d = 5  ))); // incompatible types
-  static assert(!is(typeof(fb.d = 5.0))); // incompatible types
-}
-
-// make sure __ctor and __dtor don't blow things up
-unittest {
-  struct Foo {
-    this(int i) { }
-    this(this) { }
-    ~this() { }
-  }
-
-  struct Bar {
-    this(int i) { }
-    this(this) { }
-    ~this() { }
-  }
-
-  struct FooBar {
-    alias Store = Algebraic!(Foo, Bar);
-    Store _value;
-
-    this(T)(T t) { _value = t; }
-
-    mixin(allVisitorCode!(Foo, Bar));
-  }
-
-  FooBar fb = Foo(1);
 }
