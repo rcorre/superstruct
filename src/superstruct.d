@@ -91,12 +91,12 @@ unittest {
 
   // if a Shape is a Circle, `top` forwards to Circle's top property
   Shape someShape = Circle(4, 0, 0);
-  assert(someShape.top = 6);
+  someShape.top = 6;
   assert(someShape.top == 6);
 
   // if a Shape is a Square, `top` forwards to Squares's top field
   someShape = Square(0, 0, 4, 4);
-  assert(someShape.top = 6);
+  someShape.top = 6;
   assert(someShape.top == 6);
 
   // Square.left is hidden, as Circle has no such member
