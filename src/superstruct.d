@@ -178,6 +178,35 @@ unittest {
   assert(b.transmorgrify!(add1, add1) == 0);
 }
 
+/**
+ * Wrap one of several values in a `SuperStruct`.
+ *
+ * This can be used to return a value from one of several different types.
+ * Similar to `std.range.chooseAmong`, but for a broader range of types.
+ *
+ * Returns: A `SuperStruct!T` constructed from the value at `index`.
+ */
+auto pick(T...)(size_t index, T values) {
+  foreach(idx, val ; values)
+    if (idx == index)
+      return SuperStruct!T(val);
+
+  assert(0, "index not in range of provided values");
+}
+
+/// `pick` is useful for something that is a floor wax _and_ a dessert topping:
+unittest {
+  struct FloorWax       { string itIs() { return "a floor wax!";       } }
+  struct DessertTopping { string itIs() { return "a dessert topping!"; } }
+
+  auto shimmer(bool hungry) {
+    return pick(hungry, FloorWax(), DessertTopping());
+  }
+
+  assert(shimmer(false).itIs == "a floor wax!");
+  assert(shimmer(true ).itIs == "a dessert topping!");
+}
+
 private:
 /*
  * Try to invoke `member` with the provided `args` for every `AllowedType`.
