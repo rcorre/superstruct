@@ -107,6 +107,76 @@ struct SuperStruct(SubTypes...) {
       }
     }
   }
+
+  // - Basic Operator Forwarding ---------------------------------
+
+  /// Operators are forwarded to the underlying type.
+  auto opIndex(T...)(T t) { return _value.visitAny!(x => x[t]); }
+
+  /// ditto
+  auto opSlice()() { return _value.visitAny!(x => x[]); }
+
+  /// ditto
+  auto opSlice(A, B)(A a, B b) { return _value.visitAny!(x => x[a..b]); }
+
+  /// ditto
+  // TODO
+  //auto opDollar()() { return _value.visitAny!(x => x.opDollar()); }
+
+  /// ditto
+  auto opUnary(string op)() { return _value.visitAny!(x => mixin(op~"x")); }
+
+  /// ditto
+  auto opBinary(string op, T)(T other) {
+    return _value.visitAny!(x => mixin("x"~op~"other"));
+  }
+
+  /// ditto
+  auto opOpAssign(string op, T)(T other) {
+    return _value.visitAny!((ref x) => mixin("x"~op~"=other"));
+  }
+
+  /// ditto
+  bool opEquals(T)(T other) {
+    return _value.visitAny!(x => x == other);
+  }
+
+  // - Operator Forwarding between SuperStructs -----------------
+
+  /**
+   * Perform a binary operation between two superstructs.
+   *
+   * Only possible if such an operation is supported between any of the types
+   * in either of the SuperStructs.
+   */
+  auto opBinary(string op, T : SuperStruct!V, V...)(T other) {
+    return  _value.visitAny!(x =>
+      other._value.visitAny!(y => mixin("x"~op~"y")));
+  }
+
+  /// ditto
+  auto opOpAssign(string op, T : SuperStruct!V, V...)(T other) {
+    return  _value.visitAny!((ref x) =>
+      other._value.visitAny!((    y) => mixin("x"~op~"=y")));
+  }
+
+  /**
+   * Compare one `SuperStruct` to another of the same type.
+   *
+   * Invokes opEquals if the contained types are comparable.
+   * Otherwise returns false.
+   */
+  auto opEquals(typeof(this) other) {
+    bool helper(A, B)(A a, B b) {
+      static if (is(typeof(a == b)))
+        return a == b;
+      else
+        return false;
+    }
+
+    return  _value.visitAny!(x =>
+      other._value.visitAny!(y => helper(x, y)));
+  }
 }
 
 /// If all types have a matching field, it gets exposed:
@@ -176,6 +246,42 @@ unittest {
 
   FooBar b = Bar();
   assert(b.transmorgrify!(add1, add1) == 0);
+}
+
+/// Operators get forwarded to the underlying type
+unittest {
+  struct Foo {
+    auto opSlice() { return [1,2,3]; }
+  }
+
+  struct Bar {
+    auto opSlice() { return [4,5,6]; }
+  }
+
+  SuperStruct!(Foo, Bar) fb = Foo();
+  assert(fb[] == [1,2,3]);
+}
+
+/// SuperStructs of the same type can be compared:
+unittest {
+  struct A { int i; }
+  struct B { int i; }
+  struct C { int i; bool opEquals(T)(T other) { return other.i == i; } }
+
+  SuperStruct!(A, B, C) a0 = A(0);
+  SuperStruct!(A, B, C) a1 = A(1);
+  SuperStruct!(A, B, C) b0 = B(0);
+  SuperStruct!(A, B, C) c0 = C(0);
+
+  assert(a0 == a0); // same type, same value
+  assert(a0 != a1); // same type, different value
+  assert(a0 != b0); // incomparable types return false
+  assert(a0 == c0); // different but comparable types
+
+  // SuperStructs with different sets of source types are not comparable, even
+  // if the types they happen to contain at the moment are.
+  SuperStruct!(A, B) different = A(0);
+  static assert(!__traits(compiles, different == a0));
 }
 
 /**
@@ -344,4 +450,40 @@ unittest {
 
   // only specify some type args
   assert(fb.visitor!("twotype", float)(5, 7) == 15f); // 3 + 5 + 7
+}
+
+auto visitAny(alias fn, V)(ref V var) {
+  foreach(T ; var.AllowedTypes)
+    if (auto ptr = var.peek!T)
+      return fn(*ptr);
+
+  assert(0, "Variant holds no value");
+}
+
+unittest {
+  struct Foo {
+    auto opSlice() { return [1,2,3]; }
+    auto opBinary(string op)(string val) { return "foo"~op~"val"; }
+  }
+
+  struct Bar {
+    auto opSlice() { return [4,5,6]; }
+    auto opBinary(string op)(string val) { return "foo"~op~"val"; }
+  }
+
+  Algebraic!(Foo, Bar) fb = Foo();
+  assert(fb.visitAny!(x => x[]) == [1,2,3]);
+}
+
+unittest {
+  struct One { auto opEquals(int i) { return i == 1; } }
+  struct Two { auto opEquals(int i) { return i == 2; } }
+
+  Algebraic!(One, Two) one = One();
+  Algebraic!(One, Two) two = Two();
+
+  assert( one.visitAny!(x => x == 1));
+  assert(!one.visitAny!(x => x == 2));
+  assert(!two.visitAny!(x => x == 1));
+  assert( two.visitAny!(x => x == 2));
 }
