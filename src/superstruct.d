@@ -64,6 +64,26 @@ unittest {
   static assert(!is(typeof(someShape.left)));
 }
 
+/// SuperStruct could be used, for example, for a generic container type:
+unittest {
+  import std.range, std.container;
+
+  alias Container(T) = SuperStruct!(SList!T, DList!T, Array!T);
+
+  Container!int slist = SList!int();
+
+  // We can call any members that are common among containers
+  slist.insert([1,2,3,4]);
+  assert(slist.front == 1);
+
+  // opSlice is supported on all the subtypes, but each returns a different type
+  // Container.opSlice will return a SuperStruct of these types
+  auto slice = slist[];
+  assert(slice.front == 1);
+  slice.popFront();
+  assert(slice.front == 2);
+}
+
 import std.meta;
 import std.traits;
 import std.variant;
@@ -81,7 +101,7 @@ import std.variant;
  * if, for an instance of any one of `SubTypes`, that member can be called with
  * the provided set of arguments _and_ all such calls have a common return type.
  *
- * `SuperStruct` ignores members beginning with "__".
+ * `SuperStruct` ignores members beginning with "__" (double underscore).
  */
 struct SuperStruct(SubTypes...) {
   private Algebraic!SubTypes _value;
@@ -284,6 +304,19 @@ unittest {
   static assert(!__traits(compiles, different == a0));
 }
 
+/// If members have common signatures but no common return type, the exposed
+/// member returns a `SuperStruct` of the possible return types.
+unittest {
+  struct A { auto fun() { return 1; } }
+  struct B { auto fun() { return "hi"; } }
+
+  SuperStruct!(A, B) a = A();
+  SuperStruct!(A, B) b = B();
+
+  assert(a.fun == SuperStruct!(int, string)(1));
+  assert(b.fun == SuperStruct!(int, string)("hi"));
+}
+
 /**
  * Wrap one of several values in a `SuperStruct`.
  *
@@ -449,9 +482,22 @@ unittest {
 }
 
 auto visitAny(alias fn, V)(ref V var) {
+  // Collect the possible return types for this function across the subtypes
+  alias returnType(T) = typeof(fn(*var.peek!T));
+  alias AllTypes      = staticMap!(returnType, V.AllowedTypes);
+
+  enum allVoid   = EraseAll!(void, AllTypes).length == 0;
+  enum allCommon = !is(CommonType!AllTypes == void);
+
   foreach(T ; var.AllowedTypes)
-    if (auto ptr = var.peek!T)
-      return fn(*ptr);
+    if (auto ptr = var.peek!T) {
+      static if (allCommon || allVoid)
+        return fn(*ptr);
+      else static if (!allVoid)
+        return SuperStruct!AllTypes(fn(*ptr));
+      else
+        static assert(0, "Cannot mix void and non-void return types");
+    }
 
   assert(0, "Variant holds no value");
 }
