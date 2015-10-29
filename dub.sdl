@@ -5,11 +5,13 @@ authors     "rcorre"
 license     "MIT"
 
 configuration "library" {
+  targetType "library"
   sourcePaths "src"
   importPaths "src"
 }
 
 configuration "unittest" {
+  targetType "library"
   sourcePaths "src" "test"
   importPaths "src" "test"
 }
