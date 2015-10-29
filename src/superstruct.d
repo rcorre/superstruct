@@ -103,7 +103,7 @@ struct SuperStruct(SubTypes...) {
   template opDispatch(string op) {
     template opDispatch(TemplateArgs...) {
       auto opDispatch(Args...)(Args args) {
-        return visitor!(op, TemplateArgs)(_value, args);
+        return visitMember!(op, TemplateArgs)(_value, args);
       }
     }
   }
@@ -319,7 +319,7 @@ private:
  * Compiles only if such a call is possible on every type.
  * Compiles only if the return values of all such calls share a common type.
  */
-template visitor(string member, TemplateArgs...) {
+template visitMember(string member, TemplateArgs...) {
   // if we got some explicit compile time args, we need to pass them along.
   // otherwise, omit the !() as an empty template arg list can cause issues
   static if (TemplateArgs.length)
@@ -327,22 +327,18 @@ template visitor(string member, TemplateArgs...) {
   else
     enum bang = "";
 
-  auto helper(V, Args...)(ref V var, Args args) {
+  // this nested function allows two sets of compile-time args:
+  // one from the enclosing template scope and one for the variadic args of
+  auto visitMember(V, Args...)(ref V var, Args args) {
     static if (Args.length == 0)      // field or 'getter' (no-args function)
-      enum expression = "ptr."~member~bang;
+      enum expression = "x."~member~bang;
     else static if (Args.length == 1) // field or 'setter' (1-arg function)
-      enum expression = "ptr."~member~bang~"=args[0]";
+      enum expression = "x."~member~bang~"=args[0]";
     else                              // 2+ arg function
-      enum expression = "ptr."~member~bang~"(args)";
+      enum expression = "x."~member~bang~"(args)";
 
-    foreach(T ; var.AllowedTypes)
-      if (auto ptr = var.peek!T)
-        return mixin(expression);
-
-    assert(0, "Variant holds no value");
+    return var.visitAny!((ref x) => mixin(expression));
   }
-
-  alias visitor = helper;
 }
 
 unittest {
@@ -372,34 +368,34 @@ unittest {
   Thing foo = Foo(4);
   Thing bar = Bar(5, 6);
 
-  assert(visitor!"num"(foo) == 4);
-  assert(visitor!"num"(bar) == 5);
+  assert(visitMember!"num"(foo) == 4);
+  assert(visitMember!"num"(bar) == 5);
 
-  assert(visitor!"num"(foo, 5) == 5);
-  assert(visitor!"num"(foo)    == 5);
+  assert(visitMember!"num"(foo, 5) == 5);
+  assert(visitMember!"num"(foo)    == 5);
 
-  assert(visitor!"shout"(foo) == "hi!");
-  assert(visitor!"shout"(bar) == "bye!");
-  assert(visitor!"shout"(bar) == "bye!");
+  assert(visitMember!"shout"(foo) == "hi!");
+  assert(visitMember!"shout"(bar) == "bye!");
+  assert(visitMember!"shout"(bar) == "bye!");
 
-  visitor!"assign"(foo, 2);
-  assert(visitor!"num"(foo) == 2);
+  visitMember!"assign"(foo, 2);
+  assert(visitMember!"num"(foo) == 2);
 
-  visitor!"assign"(bar, 2);
-  assert(visitor!"num"(bar) == 3); // bar adds 1
+  visitMember!"assign"(bar, 2);
+  assert(visitMember!"num"(bar) == 3); // bar adds 1
 
-  visitor!"assign"(foo, 2, 6);
-  assert(visitor!"num"(foo) == 8);
+  visitMember!"assign"(foo, 2, 6);
+  assert(visitMember!"num"(foo) == 8);
 
-  visitor!"set"(foo, 9);
-  assert(visitor!"num"(foo) == 9);
+  visitMember!"set"(foo, 9);
+  assert(visitMember!"num"(foo) == 9);
 
   // field 'othernum' only exists on bar
-  static assert(!__traits(compiles, visitor!"othernum"(bar)));
-  static assert(!__traits(compiles, visitor!"othernum"(bar)));
+  static assert(!__traits(compiles, visitMember!"othernum"(bar)));
+  static assert(!__traits(compiles, visitMember!"othernum"(bar)));
 
   // 3-param overload of 'assign' only exists on Bar
-  static assert(!__traits(compiles, visitor!"assign"(bar, 2, 6, 8)));
+  static assert(!__traits(compiles, visitMember!"assign"(bar, 2, 6, 8)));
 }
 
 // pass along template arguments
@@ -434,22 +430,22 @@ unittest {
   static auto add1 = (int a) => a + 1;
   static auto add2 = (int a) => a + 2;
 
-  assert(fb.visitor!("noargs", add1)()        == 4); // 3 + 1
-  assert(fb.visitor!("onearg", add1)(5)       == 6); // 5 + 1
-  assert(fb.visitor!("twofns", add1, add2)(5) == 8); // 5 + 1 + 2
+  assert(fb.visitMember!("noargs", add1)()        == 4); // 3 + 1
+  assert(fb.visitMember!("onearg", add1)(5)       == 6); // 5 + 1
+  assert(fb.visitMember!("twofns", add1, add2)(5) == 8); // 5 + 1 + 2
 
   // implicit type args
-  assert(fb.visitor!("onetype")(5)      == 8);   // 3 + 5
-  assert(fb.visitor!("twotype")(5, 7)   == 15);  // 3 + 5 + 7
-  assert(fb.visitor!("twotype")(5f, 7f) == 15f); // 3 + 5 + 7
+  assert(fb.visitMember!("onetype")(5)      == 8);   // 3 + 5
+  assert(fb.visitMember!("twotype")(5, 7)   == 15);  // 3 + 5 + 7
+  assert(fb.visitMember!("twotype")(5f, 7f) == 15f); // 3 + 5 + 7
 
   // explicit type args
-  assert(fb.visitor!("onetype", int)(5)             == 8);   // 3 + 5
-  assert(fb.visitor!("twotype", int)(5, 7)          == 15);  // 3 + 5 + 7
-  assert(fb.visitor!("twotype", float, float)(5, 7) == 15f); // 3 + 5 + 7
+  assert(fb.visitMember!("onetype", int)(5)             == 8);   // 3 + 5
+  assert(fb.visitMember!("twotype", int)(5, 7)          == 15);  // 3 + 5 + 7
+  assert(fb.visitMember!("twotype", float, float)(5, 7) == 15f); // 3 + 5 + 7
 
   // only specify some type args
-  assert(fb.visitor!("twotype", float)(5, 7) == 15f); // 3 + 5 + 7
+  assert(fb.visitMember!("twotype", float)(5, 7) == 15f); // 3 + 5 + 7
 }
 
 auto visitAny(alias fn, V)(ref V var) {
