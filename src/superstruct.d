@@ -66,9 +66,9 @@ unittest {
 
 /// SuperStruct could be used, for example, for a generic container type:
 unittest {
-  import std.range, std.container;
+  import std.range, std.algorithm, std.container;
 
-  alias Container(T) = SuperStruct!(SList!T, DList!T, Array!T);
+  alias Container(T) = SuperStruct!(SList!T, Array!T);
 
   Container!int slist = SList!int();
 
@@ -78,10 +78,14 @@ unittest {
 
   // opSlice is supported on all the subtypes, but each returns a different type
   // Container.opSlice will return a SuperStruct of these types
-  auto slice = slist[];
+  auto slice = slist[];     // [1,2,3,4]
   assert(slice.front == 1);
-  slice.popFront();
+  slice.popFront();         // [2,3,4]
   assert(slice.front == 2);
+
+  // as slice is a SuperStruct of range types, it still works as a range
+  slist.insert(slice); // [2,3,4] ~ [1,2,3,4]
+  assert(slist[].equal([2,3,4,1,2,3,4]));
 }
 
 import std.meta;
@@ -120,13 +124,7 @@ struct SuperStruct(SubTypes...) {
   }
 
   /// Forward all members and template instantiations to the contained value.
-  template opDispatch(string op) {
-    template opDispatch(TemplateArgs...) {
-      auto opDispatch(Args...)(Args args) {
-        return visitMember!(op, TemplateArgs)(_value, args);
-      }
-    }
-  }
+  mixin(allVisitorCode!SubTypes);
 
   // - Basic Operator Forwarding ---------------------------------
 
@@ -528,4 +526,169 @@ unittest {
   assert(!one.visitAny!(x => x == 2));
   assert(!two.visitAny!(x => x == 1));
   assert( two.visitAny!(x => x == 2));
+}
+
+/*
+ * Generate a templated function to expose access to a given member across all
+ * types that could be stored in the Variant `_value`.
+ * For any given call signature, this template will instantiate only if the
+ * matching member on every subtype is callable with such a signature _and_ if
+ * all such calls have a common return type.
+ */
+string memberVisitorCode(string name)() {
+  import std.string : format;
+
+  return q{
+    template %s(TemplateArgs...) {
+      auto helper(Args...)(Args args) {
+        return visitMember!("%s", TemplateArgs)(_value, args);
+      }
+      alias %s = helper;
+    }
+  }.format(name, name, name);
+}
+
+unittest {
+  struct Foo {
+    int a;
+    int b;
+    int c;
+    int d;
+    int e;
+  }
+
+  struct Bar {
+    int    a;
+    real   b;
+    int    c() { return 1; }        // getter only
+    string d;                       // incompatible type
+    int    e(int val) { return 0; } // setter only
+  }
+
+  struct FooBar {
+    alias Store = Algebraic!(Foo, Bar);
+    Store _value;
+
+    this(T)(T t) { _value = t; }
+
+    mixin(memberVisitorCode!("a"));
+    mixin(memberVisitorCode!("b"));
+    mixin(memberVisitorCode!("c"));
+    mixin(memberVisitorCode!("d"));
+    mixin(memberVisitorCode!("e"));
+  }
+
+  FooBar fb = Foo(1);
+
+  static assert(is(typeof(fb.a()) == int));  // both are int
+  static assert(is(typeof(fb.b()) == real)); // real is common type of (int, real)
+  static assert(is(typeof(fb.c()) == int));  // field on Foo, function on Bar
+
+  static assert( is(typeof(fb.a = 5) == int )); // both are int
+  static assert( is(typeof(fb.b = 5) == real)); // real is common type of (int, real)
+  static assert( is(typeof(fb.e = 5) == int )); // field on Foo, function on Bar
+
+  static assert(!is(typeof(fb.b = 5.0))); // type mismatch
+  static assert(!is(typeof(fb.c = 5  ))); // getter only
+  static assert(!is(typeof(fb.d = 5  ))); // incompatible types
+  static assert(!is(typeof(fb.d = 5.0))); // incompatible types
+}
+
+/*
+ * Generate a string containing the `memberVisitorCode` for every name in the
+ * union of all members across SubTypes.
+ */
+string allVisitorCode(SubTypes...)() {
+  // allMembers will fail on a primitive types, so alias that to an empty list
+  template allMembers(T) {
+    static if (__traits(compiles, __traits(allMembers, T)))
+      alias allMembers = AliasSeq!(__traits(allMembers, T));
+    else
+      alias allMembers = AliasSeq!();
+  }
+
+  // ignore __ctor, __dtor, and the like
+  enum shouldExpose(string name) = (name.length < 2 || name[0..2] != "__") &&
+                                   (name != "this");
+
+  string str;
+
+  // generate a member to forward to each underlying member
+  foreach(member ; NoDuplicates!(staticMap!(allMembers, SubTypes)))
+    static if (shouldExpose!member)
+      str ~= memberVisitorCode!(member);
+
+  return str;
+}
+
+unittest {
+  struct Foo {
+    int a;
+    int b;
+    int c;
+    int d;
+    int e;
+  }
+
+  struct Bar {
+    int    a;
+    real   b;
+    int    c() { return 1; }        // getter only
+    string d;                       // incompatible type
+    int    e(int val) { return 0; } // setter only
+  }
+
+  struct FooBar {
+    alias Store = Algebraic!(Foo, Bar);
+    Store _value;
+
+    this(T)(T t) { _value = t; }
+
+    mixin(allVisitorCode!(Foo, Bar));
+  }
+
+  FooBar fb = Foo(1);
+
+  // getters
+  static assert( is(typeof(fb.a()) == int));  // both are int
+  static assert( is(typeof(fb.b()) == real)); // real is common type of (int, real)
+  static assert( is(typeof(fb.c()) == int));  // field on Foo, function on Bar
+  static assert( is(typeof(fb.d()) == SuperStruct!(int, string)));
+  static assert(!is(typeof(fb.e())));  // setter only
+
+  // setters
+  static assert( is(typeof(fb.a = 5) == int )); // both are int
+  static assert( is(typeof(fb.b = 5) == real)); // real is common type of (int, real)
+  static assert( is(typeof(fb.e = 5) == int )); // field on Foo, function on Bar
+
+  static assert(!is(typeof(fb.b = 5.0))); // type mismatch
+  static assert(!is(typeof(fb.c = 5  ))); // getter only
+  static assert(!is(typeof(fb.d = 5  ))); // incompatible types
+  static assert(!is(typeof(fb.d = 5.0))); // incompatible types
+}
+
+// make sure __ctor and __dtor don't blow things up
+unittest {
+  struct Foo {
+    this(int i) { }
+    this(this) { }
+    ~this() { }
+  }
+
+  struct Bar {
+    this(int i) { }
+    this(this) { }
+    ~this() { }
+  }
+
+  struct FooBar {
+    alias Store = Algebraic!(Foo, Bar);
+    Store _value;
+
+    this(T)(T t) { _value = t; }
+
+    mixin(allVisitorCode!(Foo, Bar));
+  }
+
+  FooBar fb = Foo(1);
 }
