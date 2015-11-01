@@ -540,10 +540,9 @@ string memberVisitorCode(string name)() {
 
   return q{
     template %s(TemplateArgs...) {
-      auto helper(Args...)(Args args) {
+      auto %s(Args...)(Args args) {
         return visitMember!("%s", TemplateArgs)(_value, args);
       }
-      alias %s = helper;
     }
   }.format(name, name, name);
 }
