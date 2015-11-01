@@ -107,6 +107,31 @@ I don't know, you tell me. I just work here.
 If nothing else, its an interesting exercise in what D's compile-time facilities
 are capable of.
 
+As a more practical example, consider how it could serve as a base type for
+various containers in the standard library:
+
+```d
+  alias Container(T) = SuperStruct!(SList!T, Array!T);
+
+  Container!int slist = SList!int();
+
+  // We can call any members that are common among containers
+  slist.insert([1,2,3,4]);
+  assert(slist.front == 1);
+
+  // opSlice is supported on all the subtypes, but each returns a different type
+  // Container.opSlice will return a SuperStruct of these types
+  auto slice = slist[];     // [1,2,3,4]
+  assert(slice.front == 1);
+  slice.popFront();         // [2,3,4]
+  assert(slice.front == 2);
+
+  // as slice is a SuperStruct of range types, it still works as a range
+  slist.insert(slice); // [2,3,4] ~ [1,2,3,4]
+  assert(slist[].equal([2,3,4,1,2,3,4]));
+}
+```
+
 ## Why not use Variant/Algebraic?
 
 To avoid repeating yourself.
