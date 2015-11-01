@@ -607,9 +607,19 @@ string allVisitorCode(SubTypes...)() {
       alias allMembers = AliasSeq!();
   }
 
-  // ignore __ctor, __dtor, and the like
+  // ignore hidden members like __ctor, this, and operators
   enum shouldExpose(string name) = (name.length < 2 || name[0..2] != "__") &&
-                                   (name != "this");
+                                   name != "this"     &&
+                                   name != "opUnary"  &&
+                                   name != "opBinary" &&
+                                   name != "opCast"   &&
+                                   name != "opEquals" &&
+                                   name != "opCmp"    &&
+                                   name != "opCall"   &&
+                                   name != "opAssign" &&
+                                   name != "opIndex"  &&
+                                   name != "opSlice"  &&
+                                   name != "opDollar";
 
   string str;
 
