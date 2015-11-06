@@ -77,6 +77,15 @@ unittest {
   assert(a == [1,2,3,4,5,6]);
 }
 
+// more concatenation
+unittest {
+  import std.container : SList, Array;
+  alias SS = SuperStruct!(SList!int, Array!int);
+
+  SS a = Array!int(1,2,3);
+  SS b = SList!int(4,5,6);
+}
+
 // equality
 unittest {
   alias SS = SuperStruct!(int, float);
@@ -109,4 +118,13 @@ unittest {
   assert(a1 != b0);
   assert(a0 == c0); // C is comparable to A
   assert(c0 == a0); // C is comparable to A
+}
+
+// readme example
+unittest {
+  import std.algorithm : equal;
+  import std.container : SList, Array;
+  SuperStruct!(SList!int, Array!int) list = SList!int(1,2,3);
+  list = list ~ [4,5,6];
+  assert(equal(list[], [1,2,3,4,5,6]));
 }

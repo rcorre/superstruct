@@ -5,35 +5,6 @@ SuperStruct
 - [Docs hosted on Github](http://rcorre.github.io/superstruct).
 - [Dub Package](http://code.dlang.org/packages/superstruct).
 
-Suppose you've got a few structs representing shapes, `Circle`, `Square`
-and `Triangle`. You want an overarching type to store any one of these shapes.
-
-```d
-alias Shape = Algebraic!(Circle, Square, Triangle)
-Shape shape = Circle(x, y, radius);
-```
-
-Ok, an `Algebraic` (or `Variant`, in general) isn't a bad choice. Now, could you
-grab the `area` of that shape for me?
-
-```d
-auto area = shape.visit!((Circle c)   => c.area,
-                         (Square s)   => s.area,
-                         (Triangle t) => t.area);
-```
-
-Alright, that works well enough. How about the `perimeter`? They all have one of
-those, don't they?
-
-```d
-auto perimeter = shape.visit!((Circle c)   => c.perimeter,
-                              (Square s)   => s.perimeter,
-                              (Triangle t) => t.perimeter);
-```
-
-At this point, you should be yelling 'This reeks of boilerplate! Show me some
-template magic to solve all my problems!'
-
 # What is it?
 
 It's a `struct`! It's a `class`! No, its ...  `SuperStruct`!
@@ -77,9 +48,7 @@ struct Square {
 
 // but a property of cirle
 struct Circle {
-  int radius;
-  int x, y;
-
+  int radius, x, y;
   auto top() { return y - radius; }
   auto top(int val) { return y = val + radius; }
 }
@@ -88,16 +57,41 @@ alias Shape = SuperStruct!(Square, Circle);
 
 // if a Shape is a Circle, `top` forwards to Circle's top property
 Shape cir = Circle(4, 0, 0);
-assert(cir.top = 6);
+cir.top = 6;
 assert(cir.top == 6);
 
 // if a Shape is a Square, `top` forwards to Squares's top field
 Shape sqr = Square(0, 0, 4, 4);
-assert(sqr.top = 6);
+sqr.top = 6;
 assert(sqr.top == 6);
 
 // Square.left is hidden, as Circle has no such member
 static assert(!is(typeof(sqr.left)));
+```
+
+`SuperStruct` exposes common operators too.
+For example, it can forward the `opSlice` member of container types as well as
+common functions like `insert`:
+
+```d
+alias Container(T) = SuperStruct!(SList!T, Array!T);
+
+Container!int slist = SList!int();
+
+// We can call any members that are common among containers
+slist.insert([1,2,3,4]);
+assert(slist.front == 1);
+
+// opSlice is supported on all the subtypes, but each returns a different type
+// Container.opSlice will return a SuperStruct of these types
+auto slice = slist[];     // [1,2,3,4]
+assert(slice.front == 1);
+slice.popFront();         // [2,3,4]
+assert(slice.front == 2);
+
+// as slice is a SuperStruct of range types, it still works as a range
+slist.insert(slice); // [2,3,4] ~ [1,2,3,4]
+assert(slist[].equal([2,3,4,1,2,3,4]));
 ```
 
 # Is it useful?
@@ -106,31 +100,6 @@ I don't know, you tell me. I just work here.
 
 If nothing else, its an interesting exercise in what D's compile-time facilities
 are capable of.
-
-As a more practical example, consider how it could serve as a base type for
-various containers in the standard library:
-
-```d
-  alias Container(T) = SuperStruct!(SList!T, Array!T);
-
-  Container!int slist = SList!int();
-
-  // We can call any members that are common among containers
-  slist.insert([1,2,3,4]);
-  assert(slist.front == 1);
-
-  // opSlice is supported on all the subtypes, but each returns a different type
-  // Container.opSlice will return a SuperStruct of these types
-  auto slice = slist[];     // [1,2,3,4]
-  assert(slice.front == 1);
-  slice.popFront();         // [2,3,4]
-  assert(slice.front == 2);
-
-  // as slice is a SuperStruct of range types, it still works as a range
-  slist.insert(slice); // [2,3,4] ~ [1,2,3,4]
-  assert(slist[].equal([2,3,4,1,2,3,4]));
-}
-```
 
 ## Why not use Variant/Algebraic?
 
@@ -147,6 +116,9 @@ auto center1 = alg.visit!((Rect r)     => r.center,
 auto sup = SuperStruct!(Rect, Ellipse, Triangle)(someShape);
 auto center2 = sup.center;
 ```
+
+Imagine having to do that `visit` nonesense for every type for each common
+member. No fun.
 
 ## Why not use wrap?
 
@@ -167,6 +139,7 @@ source types in advance, then you probably want `wrap`.
 
 # What does it expose?
 
+## Fields and members
 - If all types have a matching field, it gets exposed:
 
 ```d
@@ -216,18 +189,61 @@ bar.a = 5;          // invokes Bar.a(int val)
 assert(bar.a == 5); // invokes Bar.a()
 ```
 
-- Private members are not exposed.
-
-# How does it work?
-`SuperStruct` uses a catch-all `opDispatch` to forward members to the underlying
-types.
+- Operators with compatible signatures are exposed:
 
 ```d
-template opDispatch(string op) {
-  template opDispatch(TemplateArgs...) {
-    auto opDispatch(Args...)(Args args) {
-      return visitor!(op, TemplateArgs)(_value, args);
-    }
+  SuperStruct!(SList!T, Array!T) list = SList!int(1,2,3);
+  list = list ~ [4,5,6]; // SList and Array both support opBinary!"~"
+}
+```
+
+- If members have compatible signatures but uncommon return types, the exposed
+  member returns a `SuperStruct` of the possible return types.
+
+```d
+  SuperStruct!(SList!T, Array!T) list = SList!int(1,2,3);
+
+  // opSlice returns a SuperStruct of the SList and Array slice types.
+  // as it exposes the common members of both, it looks just like a range.
+  assert(list[].equal([1,2,3]));
+}
+```
+
+- `SuperStruct` exposes a specialized `opEquals` that works against another
+  `SuperStruct` of the same type.
+
+```d
+  struct A { int i; }
+  struct B { int i; }
+  struct C { int i; bool opEquals(T)(T other) { return other.i == i; } }
+
+  SuperStruct!(A, B, C) a0 = A(0);
+  SuperStruct!(A, B, C) a1 = A(1);
+  SuperStruct!(A, B, C) b0 = B(0);
+  SuperStruct!(A, B, C) c0 = C(0);
+
+  assert(a0 == a0); // both contain an A with the same value
+  assert(a0 != a1); // both contain an A with different values
+  assert(a0 != b0); // A and B are not comparable
+  assert(a0 == c0); // C is comparable to A
+```
+
+- Private members are not exposed.
+
+- Symbols beginning with `__` are not exposed.
+
+# How does it work?
+`SuperStruct` mixes in a generic member for each member of the subtypes.
+This member tries to forward calls to the underlying member of whatever subtype
+it currently contains.
+
+For example, if all source types have a member `foo`, the `SuperStruct` member
+might look like:
+
+```d
+template foo(TemplateArgs...) {
+  auto foo(Args...)(Args args) {
+    return visitMember!("%s", TemplateArgs)(_value, args);
   }
 }
 ```
@@ -239,8 +255,10 @@ runtime parameters.
 Only the explicit compile-time parameters are passed along to the underlying
 members, as `Args` can be figured out from the arguments themselves.
 
-Here, `visitor` is a helper that tries to forward the call to a matching member
-on whatever `_value` (an `Algebraic` of the source types) is holding. If
+Here, `visitMember` is a helper that tries to forward the call to a matching
+member on whatever `_value` (an `Algebraic` of the source types) is holding. If
 whatever args you pass don't form a valid call on the given member for every
-subtype, it won't compile. If they all do form valid calls but there is no
-common return type for those calls, it won't compile.
+subtype, it won't compile. 
+
+If they all do form valid calls but there is no common return type for those
+calls, the returned value is a `SuperStruct` of the return types.

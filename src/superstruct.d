@@ -64,7 +64,7 @@ unittest {
   static assert(!is(typeof(someShape.left)));
 }
 
-/// SuperStruct could be used, for example, for a generic container type:
+/// SuperStruct forwards operators too:
 unittest {
   import std.range, std.algorithm, std.container;
 
