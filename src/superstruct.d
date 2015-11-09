@@ -155,9 +155,13 @@ struct SuperStruct(SubTypes...) {
   }
 
   /// ditto
-  bool opEquals(T)(T other) {
-    return _value.visitAny!(x => x == other);
-  }
+  bool opEquals(T)(T other) { return _value.visitAny!(x => x == other); }
+
+  /// ditto
+  auto opCmp(T)(T other) { return _value.visitAny!(x => x.opCmp(other)); }
+
+  /// ditto
+  auto opCall(T...)(auto ref T args) { return _value.visitAny!(x => x(args)); }
 
   // - Operator Forwarding between SuperStructs -----------------
 

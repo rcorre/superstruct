@@ -48,6 +48,62 @@ unittest {
   assert(two == 2);
 }
 
+// opCmp
+unittest {
+  struct One   { enum v = 1; auto opCmp(T)(T t) { return v - t.v; } }
+  struct Two   { enum v = 2; auto opCmp(T)(T t) { return v - t.v; } }
+  struct Three { enum v = 3; auto opCmp(T)(T t) { return v - t.v; } }
+
+  SuperStruct!(One, Two, Three) one   = One();
+  SuperStruct!(One, Two, Three) two   = Two();
+  SuperStruct!(One, Two, Three) three = Three();
+
+  assert(one < two);
+  assert(two > one);
+  assert(one == one);
+
+  import std.algorithm : sort, equal;
+
+  auto vals = [ two, one, three, one, two ];
+  assert(sort(vals).equal([one, one, two, two, three]));
+}
+
+// opCall -- delegates
+unittest {
+  auto fn1 = (int   i) => i + 1;
+  auto fn2 = (float f) => f + 2;
+
+  SuperStruct!(typeof(fn1), typeof(fn2)) add1 = fn1;
+  SuperStruct!(typeof(fn1), typeof(fn2)) add2 = fn2;
+
+  assert(add1(1) == 2);
+  assert(add2(1) == 3);
+}
+
+// opCall -- custom struct implementation
+unittest {
+  struct AddOne { auto opCall(int i) { return i + 1; } }
+  struct AddTwo { auto opCall(int i) { return i + 2; } }
+
+  SuperStruct!(AddOne, AddTwo) add1 = AddOne.init;
+  SuperStruct!(AddOne, AddTwo) add2 = AddTwo.init;
+
+  assert(add1(1) == 2);
+  assert(add2(1) == 3);
+}
+
+// opCall -- mix delegate with struct
+unittest {
+  struct AddTwo { auto opCall(int i) { return i + 2; } }
+  auto fn = (int i) => i + 1;
+
+  SuperStruct!(typeof(fn), AddTwo) add1 = fn;
+  SuperStruct!(typeof(fn), AddTwo) add2 = AddTwo.init;
+
+  assert(add1(1) == 2);
+  assert(add2(1) == 3);
+}
+
 // - operations between two superstructs ----------------------
 // binary arithmetic
 unittest {
