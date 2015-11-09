@@ -624,11 +624,18 @@ string allVisitorCode(SubTypes...)() {
                                    name != "opSlice"  &&
                                    name != "opDollar";
 
+  // we _could_ generate members that will never instantiate, but might as well
+  // filter out ones that we _know_ don't exist on at least one subtype
+  template allHave(string member) {
+    enum have(T) = hasMember!(T, member);
+    enum allHave = allSatisfy!(have, SubTypes);
+  }
+
   string str;
 
   // generate a member to forward to each underlying member
   foreach(member ; NoDuplicates!(staticMap!(allMembers, SubTypes)))
-    static if (shouldExpose!member)
+    static if (shouldExpose!member && allHave!member)
       str ~= memberVisitorCode!(member);
 
   return str;
