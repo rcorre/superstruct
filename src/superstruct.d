@@ -119,6 +119,11 @@ struct SuperStruct(SubTypes...) {
     _value = value;
   }
 
+  /**
+   * Populate the `SuperStruct` with an instance of one of its sub-types.
+   * Params:
+   *   value = something implicitly covertible to of one of the `SubTypes`.
+   */
   auto opAssign(V)(V value) if (is(typeof(_value = value))) {
     return _value = value;
   }
@@ -320,6 +325,31 @@ unittest {
 
   assert(a.fun == SuperStruct!(int, string)(1));
   assert(b.fun == SuperStruct!(int, string)("hi"));
+}
+
+/**
+ * Extract the wrapped value of type `T` from the `SuperStruct`.
+ * Throws a `VariantException` if conversion to `T` is not possible.
+ */
+auto get(T, U...)(SuperStruct!U s) if (staticIndexOf!(T, U) >= 0) {
+  return s._value.get!T;
+}
+
+/// Use `get!T` to extract the underlying struct.
+unittest {
+  import std.exception : assertThrown;
+
+  struct Square { float size; }
+  struct Circle { float r; }
+
+  SuperStruct!(Square, Circle) sqr = Square(4);
+  SuperStruct!(Square, Circle) cir = Circle(6);
+
+  assert(sqr.get!Square.size == 4);
+  assert(cir.get!Circle.r    == 6);
+
+  assertThrown!VariantException(sqr.get!Circle);
+  assertThrown!VariantException(cir.get!Square);
 }
 
 /**
