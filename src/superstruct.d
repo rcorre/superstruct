@@ -163,6 +163,9 @@ struct SuperStruct(SubTypes...) {
   /// ditto
   auto opCall(T...)(auto ref T args) { return _value.visitAny!(x => x(args)); }
 
+  /// ditto
+  auto opCast(T)() { return _value.visitAny!(x => cast(T) x); }
+
   // - Operator Forwarding between SuperStructs -----------------
 
   /**

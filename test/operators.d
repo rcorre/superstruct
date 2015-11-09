@@ -104,6 +104,37 @@ unittest {
   assert(add2(1) == 3);
 }
 
+// opCast (primitives)
+unittest {
+  SuperStruct!(int, float) a = 1;
+  SuperStruct!(int, float) b = 2.5f;
+
+  assert(cast(int) a == 1);
+  assert(cast(int) b == 2);
+
+  assert(cast(float) a == 1f);
+  assert(cast(float) b == 2.5f);
+
+  static assert(!__traits(compiles, cast(string) a));
+}
+
+// opCast (structs)
+unittest {
+  struct One { auto opCast(T)() { return cast(T) 1; } }
+  struct Two { auto opCast(T)() { return cast(T) 2; } }
+
+  SuperStruct!(One, Two) one = One();
+  SuperStruct!(One, Two) two = Two();
+
+  assert(cast(int) one == 1);
+  assert(cast(int) two == 2);
+
+  assert(cast(float) one == 1f);
+  assert(cast(float) two == 2f);
+
+  static assert(!__traits(compiles, cast(string) a));
+}
+
 // - operations between two superstructs ----------------------
 // binary arithmetic
 unittest {
