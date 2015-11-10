@@ -143,8 +143,18 @@ struct SuperStruct(SubTypes...) {
   auto opSlice(A, B)(A a, B b) { return _value.visitAny!(x => x[a..b]); }
 
   /// ditto
-  // TODO
-  //auto opDollar()() { return _value.visitAny!(x => x.opDollar()); }
+  auto ref opDollar(size_t pos)() {
+    auto ref dollar(T)(T val) {
+      static if (isArray!T)
+        return val.length;
+      else static if (is(typeof(val.opDollar!pos)))
+        return val.opDollar!pos();
+      else
+        return val.opDollar();
+    }
+
+    return _value.visitAny!(x => dollar(x));
+  }
 
   /// ditto
   auto opUnary(string op)() { return _value.visitAny!(x => mixin(op~"x")); }

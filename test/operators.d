@@ -7,7 +7,19 @@ unittest {
   assert(i[] == [0,1,2]);
   assert(i[1] == 1);
   assert(i[1..2] == [1]);
-  //assert(i[1..$] == [1]);
+  assert(i[0 .. $] == [0,1,2]);
+  assert(i[1 .. $ - 1] == [1]);
+}
+
+// slicing/indexing
+unittest {
+  import std.container : Array;
+
+  SuperStruct!(int[], Array!int) a = [0,1,2,4,5];
+  SuperStruct!(int[], Array!int) b = Array!int(5,6,7,8,9);
+
+  assert(a[$-1] == 5);
+  assert(b[$-2] == 8);
 }
 
 // binary arithmetic
