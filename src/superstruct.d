@@ -360,19 +360,34 @@ unittest {
 }
 
 /**
- * Wrap one of several values in a `SuperStruct`.
+ * Wrap one of two values in a `SuperStruct` that encompasses both types.
  *
  * This can be used to return a value from one of several different types.
  * Similar to `std.range.chooseAmong`, but for a broader range of types.
  *
- * Returns: A `SuperStruct!T` constructed from the value at `index`.
+ * Params:
+ *  condition = which value to choose: $(D a) if $(D true), $(D b) otherwise
+ *  a = the "true" value
+ *  b = the "false" value
+ *
+ * Returns: A `SuperStruct!(T1,T2)` wrapping the selected value.
  */
-auto pick(T...)(size_t index, T values) {
-  foreach(idx, val ; values)
-    if (idx == index)
-      return SuperStruct!T(val);
+auto pick(T1, T2)(bool condition, T1 a, T2 b) {
+  if (condition) return SuperStruct!(T1, T2)(a);
+  else           return SuperStruct!(T1, T2)(b);
+}
 
-  assert(0, "index not in range of provided values");
+///
+unittest {
+  struct Square { int size; int area() { return size * size; } }
+  struct Rect   { int w ,h; int area() { return w * h; } }
+
+  auto shape(int w, int h) {
+    return pick(w == h, Square(w), Rect(w,h));
+  }
+
+  assert(shape(4,5).area == 20);
+  assert(shape(3,3).area == 9);
 }
 
 /// `pick` is useful for something that is a floor wax _and_ a dessert topping:
@@ -381,11 +396,63 @@ unittest {
   struct DessertTopping { string itIs() { return "a dessert topping!"; } }
 
   auto shimmer(bool hungry) {
-    return pick(hungry, FloorWax(), DessertTopping());
+    return pick(hungry, DessertTopping(), FloorWax());
   }
 
   assert(shimmer(false).itIs == "a floor wax!");
   assert(shimmer(true ).itIs == "a dessert topping!");
+}
+
+/**
+ * Wrap one of two values in a `SuperStruct` that encompasses both types.
+ *
+ * This can be used to return a value from one of several different types.
+ * Similar to `std.range.chooseAmong`, but for a broader range of types.
+ *
+ * Params:
+ *  condition = which value to choose: $(D a) if $(D true), $(D b) otherwise
+ *  index = which value to choose, must be less than the number of values
+ *  values = two or more values to pick from
+ *
+ * Returns: A `SuperStruct!T` wrapping the argument at `index`.
+ */
+auto pickAmong(T...)(size_t index, T values) {
+  foreach(idx, val ; values)
+    if (idx == index)
+      return SuperStruct!T(val);
+
+  assert(0, "index not in range of provided values");
+}
+
+/// use `pickAmong` to form a common return type from different structs
+unittest {
+  struct Zero  { auto num = 0; }
+  struct One   { auto num = 1; }
+  struct Two   { auto num = 2; }
+
+  auto val = pickAmong(0, Zero(), One(), Two());
+  assert(val.num == 0);
+
+  val = pickAmong(1, Zero(), One(), Two());
+  assert(val.num == 1);
+
+  val = pickAmong(2, Zero(), One(), Two());
+  assert(val.num == 2);
+}
+
+/// `pickAmong` is similar to `std.range.chooseAmong`:
+unittest {
+  import std.range : only, iota, repeat;
+  import std.algorithm : equal;
+
+  auto r = pickAmong(0, only(1), iota(0,3), repeat(1,3));
+  assert(r.equal([1]));
+
+  r = pickAmong(1, only(1), iota(0,3), repeat(1,3));
+  assert(r.equal([0,1,2]));
+
+  r = pickAmong(2, only(1), iota(0,3), repeat(1,3));
+  assert(r.equal([1,1,1]));
 }
 
 private:
