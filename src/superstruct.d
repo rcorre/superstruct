@@ -168,9 +168,6 @@ struct SuperStruct(SubTypes...) {
   /// ditto
   auto opCall(T...)(auto ref T args) { return _value.visitAny!(x => x(args)); }
 
-  /// ditto
-  auto opCast(T)() { return _value.visitAny!(x => cast(T) x); }
-
   // - Operator Forwarding between SuperStructs -----------------
 
   /**
@@ -206,6 +203,14 @@ struct SuperStruct(SubTypes...) {
 
     return  _value.visitAny!(x =>
       other._value.visitAny!(y => helper(x, y)));
+  }
+
+  /**
+   * Extract the wrapped value of type `T` from the `SuperStruct`.
+   * Throws a `VariantException` if conversion to `T` is not possible.
+   */
+  auto opCast(T)() if (staticIndexOf!(T, SubTypes) >= 0) {
+    return _value.get!T;
   }
 }
 
@@ -327,15 +332,7 @@ unittest {
   assert(b.fun == SuperStruct!(int, string)("hi"));
 }
 
-/**
- * Extract the wrapped value of type `T` from the `SuperStruct`.
- * Throws a `VariantException` if conversion to `T` is not possible.
- */
-auto get(T, U...)(SuperStruct!U s) if (staticIndexOf!(T, U) >= 0) {
-  return s._value.get!T;
-}
-
-/// Use `get!T` to extract the underlying struct.
+/// Use `cast(T)` to convert a `SuperStruct` to a subtype
 unittest {
   import std.exception : assertThrown;
 
@@ -345,11 +342,11 @@ unittest {
   SuperStruct!(Square, Circle) sqr = Square(4);
   SuperStruct!(Square, Circle) cir = Circle(6);
 
-  assert(sqr.get!Square.size == 4);
-  assert(cir.get!Circle.r    == 6);
+  assert((cast(Square) sqr).size == 4);
+  assert((cast(Circle) cir).r    == 6);
 
-  assertThrown!VariantException(sqr.get!Circle);
-  assertThrown!VariantException(cir.get!Square);
+  assertThrown!VariantException(cast(Circle) sqr);
+  assertThrown!VariantException(cast(Square) cir);
 }
 
 /**
