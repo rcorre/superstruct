@@ -410,7 +410,6 @@ unittest {
  * Similar to `std.range.chooseAmong`, but for a broader range of types.
  *
  * Params:
- *  condition = which value to choose: $(D a) if $(D true), $(D b) otherwise
  *  index = which value to choose, must be less than the number of values
  *  values = two or more values to pick from
  *
