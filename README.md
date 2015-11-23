@@ -14,60 +14,48 @@ and [`variant`](http://dlang.org/phobos/std_variant.html) works like an
 `Algebraic`, but exposes members that are common across the source types.
 
 ```d
+struct Vector { float x, y; }
+
 struct Square {
   float size;
-  float area() { return size * size; }
+  Vector topLeft;
+
+  auto area() { return size * size; }
+
+  auto center() {
+    return Vector(topLeft.x + size / 2, topLeft.y + size / 2);
+  }
+
+  auto center(Vector c) {
+    return topLeft = Vector(c.x - size / 2, c.y - size / 2);
+  }
 }
 
 struct Circle {
-  float r;
-  float area() { return r * r * PI; }
+  float radius;
+  Vector center;
+  float area() { return radius * radius * PI; }
 }
 
+// Shape may look like a class, but its actually a struct
 alias Shape = SuperStruct!(Square, Circle);
 
-// look! polymorphism!
-Shape sqr = Square(2);
-Shape cir = Circle(4);
+Shape sqr = Square(2, Vector(0,0));
+Shape cir = Circle(4, Vector(0,0));
 Shape[] shapes = [ sqr, cir ];
 
-// call functions that are shared between the source types!
+// call functions that are shared between the source types:
 assert(shapes.map!(x => x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
+
+// It doesn't matter that `center` is a field of `Circle`, but a property of Square.
+// They can be used in the same way:
+cir.center = Vector(4, 2);
+sqr.center = cir.center;
+assert(sqr.center == Vector(4,2));
 ```
 
 Notice that there is no explicit interface definition. The 'interface' forms
 organically from the common members of the source types.
-
-The interface isn't limited to methods -- common fields can be exposed as well:
-
-```d
-// `top` is a field of Square
-struct Square {
-  int top, left, width, height;
-}
-
-// but a property of cirle
-struct Circle {
-  int radius, x, y;
-  auto top() { return y - radius; }
-  auto top(int val) { return y = val + radius; }
-}
-
-alias Shape = SuperStruct!(Square, Circle);
-
-// if a Shape is a Circle, `top` forwards to Circle's top property
-Shape cir = Circle(4, 0, 0);
-cir.top = 6;
-assert(cir.top == 6);
-
-// if a Shape is a Square, `top` forwards to Squares's top field
-Shape sqr = Square(0, 0, 4, 4);
-sqr.top = 6;
-assert(sqr.top == 6);
-
-// Square.left is hidden, as Circle has no such member
-static assert(!is(typeof(sqr.left)));
-```
 
 `SuperStruct` exposes common operators too.
 For example, it can forward the `opSlice` member of container types as well as
@@ -258,7 +246,7 @@ members, as `Args` can be figured out from the arguments themselves.
 Here, `visitMember` is a helper that tries to forward the call to a matching
 member on whatever `_value` (an `Algebraic` of the source types) is holding. If
 whatever args you pass don't form a valid call on the given member for every
-subtype, it won't compile. 
+subtype, it won't compile.
 
 If they all do form valid calls but there is no common return type for those
 calls, the returned value is a `SuperStruct` of the return types.

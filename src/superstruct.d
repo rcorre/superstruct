@@ -7,61 +7,57 @@
  */
 module superstruct;
 
-/// Two disparate structs ... they can't be used interchangeably, right?
+/**
+ * It's a `struct`! It's a `class`! No, its ...  `SuperStruct`!
+ *
+ * This bastard child of
+ * $(LINK2 http://dlang.org/phobos/std_typecons.html#.wrap, wrap)
+ * and
+ * $(LINK2 http://dlang.org/phobos/std_variant.html, variant)
+ * works like an
+ * `Algebraic`, but exposes members that are common across the source types.
+ */
 unittest {
   import std.math, std.algorithm;
 
+  struct Vector { float x, y; }
+
   struct Square {
     float size;
-    float area() { return size * size; }
+    Vector topLeft;
+
+    auto area() { return size * size; }
+
+    auto center() {
+      return Vector(topLeft.x + size / 2, topLeft.y + size / 2);
+    }
+
+    auto center(Vector c) {
+      return topLeft = Vector(c.x - size / 2, c.y - size / 2);
+    }
   }
 
   struct Circle {
-    float r;
-    float area() { return r * r * PI; }
+    float radius;
+    Vector center;
+    float area() { return radius * radius * PI; }
   }
 
-  // Or can they?
+  // Shape may look like a class, but its actually a struct
   alias Shape = SuperStruct!(Square, Circle);
 
-  // look! polymorphism!
-  Shape sqr = Square(2);
-  Shape cir = Circle(4);
+  Shape sqr = Square(2, Vector(0,0));
+  Shape cir = Circle(4, Vector(0,0));
   Shape[] shapes = [ sqr, cir ];
 
-  // call functions that are shared between the source types!
+  // call functions that are shared between the source types:
   assert(shapes.map!(x => x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
-}
 
-/// Want to access fields of the underlying types? Not a problem!
-/// Are some of them properties? Not a problem!
-unittest {
-  struct Square {
-    int top, left, width, height;
-  }
-
-  struct Circle {
-    int radius;
-    int x, y;
-
-    auto top() { return y - radius; }
-    auto top(int val) { return y = val + radius; }
-  }
-
-  alias Shape = SuperStruct!(Square, Circle);
-
-  // if a Shape is a Circle, `top` forwards to Circle's top property
-  Shape someShape = Circle(4, 0, 0);
-  someShape.top = 6;
-  assert(someShape.top == 6);
-
-  // if a Shape is a Square, `top` forwards to Squares's top field
-  someShape = Square(0, 0, 4, 4);
-  someShape.top = 6;
-  assert(someShape.top == 6);
-
-  // Square.left is hidden, as Circle has no such member
-  static assert(!is(typeof(someShape.left)));
+  // It doesn't matter that `center` is a field of `Circle`, but a property of Square.
+  // They can be used in the same way:
+  cir.center = Vector(4, 2);
+  sqr.center = cir.center;
+  assert(sqr.center == Vector(4,2));
 }
 
 /// SuperStruct forwards operators too:
