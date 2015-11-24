@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<title>Function pickAmong</title>
+		<link rel="stylesheet" type="text/css" href="../styles/ddox.css"/>
+		<link rel="stylesheet" href="../prettify/prettify.css" type="text/css"/>
+		<script type="text/javascript" src="../scripts/jquery.js">/**/</script>
+		<script type="text/javascript" src="../prettify/prettify.js">/**/</script>
+		<script type="text/javascript" src="../scripts/ddox.js">/**/</script>
+	</head>
+	<body onload="prettyPrint(); setupDdox();">
+		<nav id="main-nav">
+						<ul class="tree-view">
+							<li>
+								<a href="../superstruct.html" class="selected module">superstruct</a>
+							</li>
+						</ul>
+				<noscript>
+					<p style="color: red">The search functionality needs JavaScript enabled</p>
+				</noscript>
+				<div id="symbolSearchPane" style="display: none">
+					<p>
+						<input id="symbolSearch" type="text" placeholder="Search for symbols" onchange="performSymbolSearch(24);" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"/>
+					</p>
+	<ul id="symbolSearchResults" style="display: none"></ul>
+	<script type="application/javascript" src="../symbols.js"></script>
+	<script type="application/javascript">
+var symbolSearchRootDir = "../";
+$('#symbolSearchPane').show();
+	</script>
+				</div>
+		</nav>
+		<div id="main-contents">
+			<h1>Function pickAmong</h1>
+			<section>
+				<p>Wrap one of two <a href="../superstruct/pickAmong.html#values"><code class="prettyprint lang-d">values</code></a> in a <code class="prettyprint lang-d"><a href="../superstruct/SuperStruct.html">SuperStruct</a></code> that encompasses both types.
+</p>
+<section><p>This can be used to return a value from one of several different types.
+ Similar to <code class="prettyprint lang-d">std.range.chooseAmong</code>, but for a broader range of types.
+</p>
+</section>
+
+					<section>
+						<h3>Prototype</h3>
+						<div class="prototype">
+							<code class="prettyprint lang-d">
+auto pickAmong(T...)(
+								<br/>
+&nbsp;&nbsp;size_t index,
+								<br/>
+&nbsp;&nbsp;T values
+								<br/>
+);
+							</code>
+						</div>
+					</section>
+<section><h3>Parameters</h3>
+<table><col class="caption"><tr><th>Name</th><th>Description</th></tr>
+<tr><td id="index">index</td><td> which value to choose, must be less than the number of <a href="../superstruct/pickAmong.html#values"><code class="prettyprint lang-d">values</code></a></td></tr>
+<tr><td id="values">values</td><td> two or more <a href="../superstruct/pickAmong.html#values"><code class="prettyprint lang-d">values</code></a> to <a href="../superstruct/pick.html"><code class="prettyprint lang-d">pick</code></a> from</td></tr>
+</table>
+</section>
+<section><h3>Returns</h3>
+<p>A <code class="prettyprint lang-d"><a href="../superstruct/SuperStruct.html">SuperStruct</a>!T</code> wrapping the argument at <code class="prettyprint lang-d"><a href="../superstruct/pickAmong.html#index">index</a></code>.
+</p>
+</section>
+<section><h3>Example</h3>
+<p>use <code class="prettyprint lang-d">pickAmong</code> to form a common return type from different structs
+</p>
+<pre class="code"><code class="prettyprint lang-d">struct Zero  { auto num = 0; }
+struct One   { auto num = 1; }
+struct Two   { auto num = 2; }
+
+auto val = pickAmong(0, Zero(), One(), Two());
+assert(val.num == 0);
+
+val = pickAmong(1, Zero(), One(), Two());
+assert(val.num == 1);
+
+val = pickAmong(2, Zero(), One(), Two());
+assert(val.num == 2);
+
+</code></pre>
+</section>
+<section><h3>Example</h3>
+<p><code class="prettyprint lang-d">pickAmong</code> is similar to <code class="prettyprint lang-d">std.range.chooseAmong</code>:
+</p>
+<pre class="code"><code class="prettyprint lang-d">import std.range : only, iota, repeat;
+import std.algorithm : equal;
+
+auto r = pickAmong(0, only(1), iota(0,3), repeat(1,3));
+assert(r.equal([1]));
+
+r = pickAmong(1, only(1), iota(0,3), repeat(1,3));
+assert(r.equal([0,1,2]));
+
+r = pickAmong(2, only(1), iota(0,3), repeat(1,3));
+assert(r.equal([1,1,1]));
+
+</code></pre>
+</section>
+
+			</section>
+			<section>
+				<h2>Authors</h2>
+<p>Ryan Roden-Corrent (<a href="https://github.com/rcorre">rcorre</a>)
+</p>
+
+			</section>
+			<section>
+				<h2>Copyright</h2>
+<p>© 2015, Ryan Roden-Corrent
+</p>
+
+			</section>
+			<section>
+				<h2>License</h2>
+<p>MIT
+</p>
+
+			</section>
+		</div>
+	</body>
+</html>

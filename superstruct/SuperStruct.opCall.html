@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="UTF-8"/>
-		<title>Function SuperStruct.this.this</title>
+		<title>Function SuperStruct.opCall</title>
 		<link rel="stylesheet" type="text/css" href="../styles/ddox.css"/>
 		<link rel="stylesheet" href="../prettify/prettify.css" type="text/css"/>
 		<script type="text/javascript" src="../scripts/jquery.js">/**/</script>
@@ -32,16 +32,22 @@ $('#symbolSearchPane').show();
 				</div>
 		</nav>
 		<div id="main-contents">
-			<h1>Function SuperStruct.this.this</h1>
+			<h1>Function SuperStruct.opCall</h1>
 			<section>
-				<p></p>
+				<p>Operators are forwarded to the underlying type.
+</p>
 
 					<section>
 						<h3>Prototype</h3>
-						<pre class="code prettyprint lang-d prototype">
-this(
-&nbsp;&nbsp;V value
-);</pre>
+						<div class="prototype">
+							<code class="prettyprint lang-d">
+auto opCall(T...)(
+								<br/>
+&nbsp;&nbsp;auto ref T args
+								<br/>
+);
+							</code>
+						</div>
 					</section>
 
 			</section>

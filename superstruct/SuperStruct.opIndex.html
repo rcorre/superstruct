@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="UTF-8"/>
-		<title>Function SuperStruct.this</title>
+		<title>Function SuperStruct.opIndex</title>
 		<link rel="stylesheet" type="text/css" href="../styles/ddox.css"/>
 		<link rel="stylesheet" href="../prettify/prettify.css" type="text/css"/>
 		<script type="text/javascript" src="../scripts/jquery.js">/**/</script>
@@ -32,30 +32,23 @@ $('#symbolSearchPane').show();
 				</div>
 		</nav>
 		<div id="main-contents">
-			<h1>Function SuperStruct.this</h1>
+			<h1>Function SuperStruct.opIndex</h1>
 			<section>
-				<p>Construct and populate with an initial <a href="../superstruct/SuperStruct.this.html#value"><code class="prettyprint lang-d">value</code></a>.
+				<p>Operators are forwarded to the underlying type.
 </p>
 
 					<section>
 						<h3>Prototype</h3>
 						<div class="prototype">
 							<code class="prettyprint lang-d">
-this(V)(
+auto opIndex(T...)(
 								<br/>
-&nbsp;&nbsp;V value
+&nbsp;&nbsp;T t
 								<br/>
-)
-								<br/>
-if (is(typeof(_value = value)));
+);
 							</code>
 						</div>
 					</section>
-<section><h3>Parameters</h3>
-<table><col class="caption"><tr><th>Name</th><th>Description</th></tr>
-<tr><td id="value">value</td><td> something implicitly covertible to of one of the <code class="prettyprint lang-d">SubTypes</code>.</td></tr>
-</table>
-</section>
 
 			</section>
 			<section>

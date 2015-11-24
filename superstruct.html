@@ -33,73 +33,119 @@ $('#symbolSearchPane').show();
 		</nav>
 		<div id="main-contents">
 			<h1>Module superstruct</h1>
-			<p> This module provides a single type, <code class="prettyprint lang-d"><a href="./superstruct/SuperStruct.html"><code class="prettyprint lang-d">SuperStruct</code></a></code>.
+			<p>This module provides a single type, <code class="prettyprint lang-d"><a href="./superstruct/SuperStruct.html">SuperStruct</a></code>.
 </p>
-<section>
-</section>
+<section></section>
 
 			<section><section><h2>Example</h2>
-<p>Two disparate structs ... they can't be used interchangeably, right?
+<p>It's a <code class="prettyprint lang-d">struct</code>! It's a <code class="prettyprint lang-d">class</code>! No, its ...  <code class="prettyprint lang-d"><a href="./superstruct/SuperStruct.html">SuperStruct</a></code>!
 </p>
-<pre class="code prettyprint lang-d">import std.math, std.algorithm;
+
+<p> This bastard child of
+ <a href="http://dlang.org/phobos/std_typecons.html#.wrap">wrap</a>
+ and
+ <a href="http://dlang.org/phobos/std_variant.html">variant</a>
+ works like an
+ <code class="prettyprint lang-d">Algebraic</code>, but exposes members that are common across the source types.
+</p>
+<pre class="code"><code class="prettyprint lang-d">import std.math, std.algorithm;
+
+struct Vector { float x, y; }
 
 struct Square {
   float size;
-  float area() { return size * size; }
+  Vector topLeft;
+
+  auto area() { return size * size; }
+
+  auto center() {
+    return Vector(topLeft.x + size / 2, topLeft.y + size / 2);
+  }
+
+  auto center(Vector c) {
+    return topLeft = Vector(c.x - size / 2, c.y - size / 2);
+  }
 }
 
 struct Circle {
-  float r;
-  float area() { return r * r * PI; }
+  float radius;
+  Vector center;
+  float area() { return radius * radius * PI; }
 }
 
-// Or can they?
+// Shape may look like a class, but its actually a struct
 alias Shape = <a href="./superstruct/SuperStruct.html">SuperStruct</a>!(Square, Circle);
 
-// look! polymorphism!
-Shape sqr = Square(2);
-Shape cir = Circle(4);
+Shape sqr = Square(2, Vector(0,0));
+Shape cir = Circle(4, Vector(0,0));
 Shape[] shapes = [ sqr, cir ];
 
-// call functions that are shared between the source types!
-assert(shapes.map!(x => x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
-</pre>
+// call functions that are shared between the source types:
+assert(shapes.map!(x =&gt; x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
+
+// It doesn't matter that `center` is a field of `Circle`, but a property of Square.
+// They can be used in the same way:
+cir.center = Vector(4, 2);
+sqr.center = cir.center;
+assert(sqr.center == Vector(4,2));
+
+</code></pre>
 </section>
 <section><h2>Example</h2>
-<p>Want to access fields of the underlying types? Not a problem!
+<p><a href="./superstruct/SuperStruct.html"><code class="prettyprint lang-d">SuperStruct</code></a> forwards operators too:
 </p>
+<pre class="code"><code class="prettyprint lang-d">import std.range, std.algorithm, std.container;
 
-<p>Are some of them properties? Not a problem!
-</p>
-<pre class="code prettyprint lang-d">struct Square {
-  int top, left, width, height;
-}
+alias Container(T) = <a href="./superstruct/SuperStruct.html">SuperStruct</a>!(SList!T, Array!T);
 
-struct Circle {
-  int radius;
-  int x, y;
+Container!int slist = SList!int();
 
-  auto top() { return y - radius; }
-  auto top(int val) { return y = val + radius; }
-}
+// We can call any members that are common among containers
+slist.insert([1,2,3,4]);
+assert(slist.front == 1);
 
-alias Shape = <a href="./superstruct/SuperStruct.html">SuperStruct</a>!(Square, Circle);
+// opSlice is supported on all the subtypes, but each returns a different type
+// Container.opSlice will return a <a href="./superstruct/SuperStruct.html">SuperStruct</a> of these types
+auto slice = slist[];     // [1,2,3,4]
+assert(slice.front == 1);
+slice.popFront();         // [2,3,4]
+assert(slice.front == 2);
 
-// if a Shape is a Circle, `top` forwards to Circle's top property
-Shape cir = Circle(4, 0, 0);
-assert(cir.top = 6);
-assert(cir.top == 6);
+// as slice is a <a href="./superstruct/SuperStruct.html">SuperStruct</a> of range types, it still works as a range
+slist.insert(slice); // [2,3,4] ~ [1,2,3,4]
+assert(slist[].equal([2,3,4,1,2,3,4]));
 
-// if a Shape is a Square, `top` forwards to Squares's top field
-Shape sqr = Square(0, 0, 4, 4);
-assert(sqr.top = 6);
-assert(sqr.top == 6);
-
-// Square.left is hidden, as Circle has no such member
-static assert(!is(typeof(sqr.left)));
-</pre>
+</code></pre>
 </section>
 </section>
+			<section>
+				<h2>Functions</h2>
+				<table>
+					<col class="caption"/>
+					<tr>
+						<th>Name</th>
+						<th>Description</th>
+					</tr>
+					<tr>
+						<td>
+							<a id="pick" class="public" href="./superstruct/pick.html">
+								<code>pick</code>
+							</a>
+						</td>
+						<td>Wrap one of two values in <a href="./superstruct/pick.html#a"><code class="prettyprint lang-d">a</code></a> <code class="prettyprint lang-d"><a href="./superstruct/SuperStruct.html">SuperStruct</a></code> that encompasses both types.
+</td>
+					</tr>
+					<tr>
+						<td>
+							<a id="pickAmong" class="public" href="./superstruct/pickAmong.html">
+								<code>pickAmong</code>
+							</a>
+						</td>
+						<td>Wrap one of two <a href="./superstruct/pickAmong.html#values"><code class="prettyprint lang-d">values</code></a> in a <code class="prettyprint lang-d"><a href="./superstruct/SuperStruct.html">SuperStruct</a></code> that encompasses both types.
+</td>
+					</tr>
+				</table>
+			</section>
 			<section>
 				<h2>Structs</h2>
 				<table>
@@ -114,7 +160,7 @@ static assert(!is(typeof(sqr.left)));
 								<code>SuperStruct</code>
 							</a>
 						</td>
-						<td> A Variant which exposes members that are common across all <code class="prettyprint lang-d">SubTypes</code>.
+						<td>A Variant which exposes members that are common across all <code class="prettyprint lang-d">SubTypes</code>.
 </td>
 					</tr>
 				</table>

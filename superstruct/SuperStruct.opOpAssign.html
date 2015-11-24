@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="UTF-8"/>
-		<title>Function SuperStruct.this</title>
+		<title>SuperStruct.opOpAssign - multiple declarations</title>
 		<link rel="stylesheet" type="text/css" href="../styles/ddox.css"/>
 		<link rel="stylesheet" href="../prettify/prettify.css" type="text/css"/>
 		<script type="text/javascript" src="../scripts/jquery.js">/**/</script>
@@ -32,30 +32,51 @@ $('#symbolSearchPane').show();
 				</div>
 		</nav>
 		<div id="main-contents">
-			<h1>Function SuperStruct.this</h1>
+			<h1>SuperStruct.opOpAssign - multiple declarations</h1>
+			<ul>
+				<li>Function SuperStruct.opOpAssign</li>
+				<li>Function SuperStruct.opOpAssign</li>
+			</ul>
 			<section>
-				<p>Construct and populate with an initial <a href="../superstruct/SuperStruct.this.html#value"><code class="prettyprint lang-d">value</code></a>.
+				<h2>Function SuperStruct.opOpAssign</h2>
+				<p>Operators are forwarded to the underlying type.
 </p>
 
 					<section>
 						<h3>Prototype</h3>
 						<div class="prototype">
 							<code class="prettyprint lang-d">
-this(V)(
+auto opOpAssign(string op, T)(
 								<br/>
-&nbsp;&nbsp;V value
+&nbsp;&nbsp;T other
 								<br/>
-)
-								<br/>
-if (is(typeof(_value = value)));
+);
 							</code>
 						</div>
 					</section>
-<section><h3>Parameters</h3>
-<table><col class="caption"><tr><th>Name</th><th>Description</th></tr>
-<tr><td id="value">value</td><td> something implicitly covertible to of one of the <code class="prettyprint lang-d">SubTypes</code>.</td></tr>
-</table>
+
+			</section>
+			<section>
+				<h2>Function SuperStruct.opOpAssign</h2>
+				<p>Perform a binary operation between two superstructs.
+</p>
+<section><p>Only possible if such an operation is supported between any of the types
+ in either of the SuperStructs.
+</p>
 </section>
+
+					<section>
+						<h3>Prototype</h3>
+						<div class="prototype">
+							<code class="prettyprint lang-d">
+auto opOpAssign(string op, T, V...)(
+								<br/>
+&nbsp;&nbsp;T other
+								<br/>
+);
+							</code>
+						</div>
+					</section>
 
 			</section>
 			<section>

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8"/>
+		<title>Function pick</title>
+		<link rel="stylesheet" type="text/css" href="../styles/ddox.css"/>
+		<link rel="stylesheet" href="../prettify/prettify.css" type="text/css"/>
+		<script type="text/javascript" src="../scripts/jquery.js">/**/</script>
+		<script type="text/javascript" src="../prettify/prettify.js">/**/</script>
+		<script type="text/javascript" src="../scripts/ddox.js">/**/</script>
+	</head>
+	<body onload="prettyPrint(); setupDdox();">
+		<nav id="main-nav">
+						<ul class="tree-view">
+							<li>
+								<a href="../superstruct.html" class="selected module">superstruct</a>
+							</li>
+						</ul>
+				<noscript>
+					<p style="color: red">The search functionality needs JavaScript enabled</p>
+				</noscript>
+				<div id="symbolSearchPane" style="display: none">
+					<p>
+						<input id="symbolSearch" type="text" placeholder="Search for symbols" onchange="performSymbolSearch(24);" onkeypress="this.onchange();" onpaste="this.onchange();" oninput="this.onchange();"/>
+					</p>
+	<ul id="symbolSearchResults" style="display: none"></ul>
+	<script type="application/javascript" src="../symbols.js"></script>
+	<script type="application/javascript">
+var symbolSearchRootDir = "../";
+$('#symbolSearchPane').show();
+	</script>
+				</div>
+		</nav>
+		<div id="main-contents">
+			<h1>Function pick</h1>
+			<section>
+				<p>Wrap one of two values in <a href="../superstruct/pick.html#a"><code class="prettyprint lang-d">a</code></a> <code class="prettyprint lang-d"><a href="../superstruct/SuperStruct.html">SuperStruct</a></code> that encompasses both types.
+</p>
+<section><p>This can be used to return <a href="../superstruct/pick.html#a"><code class="prettyprint lang-d">a</code></a> value from one of several different types.
+ Similar to <code class="prettyprint lang-d">std.range.chooseAmong</code>, but for <a href="../superstruct/pick.html#a"><code class="prettyprint lang-d">a</code></a> broader range of types.
+</p>
+</section>
+
+					<section>
+						<h3>Prototype</h3>
+						<div class="prototype">
+							<code class="prettyprint lang-d">
+auto pick(T1, T2)(
+								<br/>
+&nbsp;&nbsp;bool condition,
+								<br/>
+&nbsp;&nbsp;T1 a,
+								<br/>
+&nbsp;&nbsp;T2 b
+								<br/>
+);
+							</code>
+						</div>
+					</section>
+<section><h3>Parameters</h3>
+<table><col class="caption"><tr><th>Name</th><th>Description</th></tr>
+<tr><td id="condition">condition</td><td> which value to choose: <a href="../superstruct/pick.html#a"><code class="prettyprint lang-d">a</code></a> if true, <a href="../superstruct/pick.html#b"><code class="prettyprint lang-d">b</code></a> otherwise</td></tr>
+<tr><td id="a">a</td><td> the "true" value</td></tr>
+<tr><td id="b">b</td><td> the "false" value</td></tr>
+</table>
+</section>
+<section><h3>Returns</h3>
+<p>A <code class="prettyprint lang-d"><a href="../superstruct/SuperStruct.html">SuperStruct</a>!(T1,T2)</code> wrapping the selected value.
+</p>
+</section>
+<section><h3>Example</h3>
+<pre class="code"><code class="prettyprint lang-d">struct Square { int size; int area() { return size * size; } }
+struct Rect   { int w ,h; int area() { return w * h; } }
+
+auto shape(int w, int h) {
+  return pick(w == h, Square(w), Rect(w,h));
+}
+
+assert(shape(4,5).area == 20);
+assert(shape(3,3).area == 9);
+
+</code></pre>
+</section>
+<section><h3>Example</h3>
+<p><code class="prettyprint lang-d">pick</code> is useful for something that is <a href="../superstruct/pick.html#a"><code class="prettyprint lang-d">a</code></a> floor wax and_ <a href="../superstruct/pick.html#a"><code class="prettyprint lang-d">a</code></a> dessert topping:
+</p>
+<pre class="code"><code class="prettyprint lang-d">struct FloorWax       { string itIs() { return "<a href="../superstruct/pick.html#a">a</a> floor wax!";       } }
+struct DessertTopping { string itIs() { return "<a href="../superstruct/pick.html#a">a</a> dessert topping!"; } }
+
+auto shimmer(bool hungry) {
+  return pick(hungry, DessertTopping(), FloorWax());
+}
+
+assert(shimmer(false).itIs == "<a href="../superstruct/pick.html#a">a</a> floor wax!");
+assert(shimmer(true ).itIs == "<a href="../superstruct/pick.html#a">a</a> dessert topping!");
+
+</code></pre>
+</section>
+
+			</section>
+			<section>
+				<h2>Authors</h2>
+<p>Ryan Roden-Corrent (<a href="https://github.com/rcorre">rcorre</a>)
+</p>
+
+			</section>
+			<section>
+				<h2>Copyright</h2>
+<p>© 2015, Ryan Roden-Corrent
+</p>
+
+			</section>
+			<section>
+				<h2>License</h2>
+<p>MIT
+</p>
+
+			</section>
+		</div>
+	</body>
+</html>

@@ -2,7 +2,7 @@
 <html>
 	<head>
 		<meta charset="UTF-8"/>
-		<title>Module superstruct</title>
+		<title>API documentation</title>
 		<link rel="stylesheet" type="text/css" href="./styles/ddox.css"/>
 		<link rel="stylesheet" href="./prettify/prettify.css" type="text/css"/>
 		<script type="text/javascript" src="./scripts/jquery.js">/**/</script>
@@ -13,7 +13,7 @@
 		<nav id="main-nav">
 						<ul class="tree-view">
 							<li>
-								<a href="./superstruct.html" class="selected module">superstruct</a>
+								<a href="./superstruct.html" class=" module">superstruct</a>
 							</li>
 						</ul>
 				<noscript>
@@ -32,110 +32,31 @@ $('#symbolSearchPane').show();
 				</div>
 		</nav>
 		<div id="main-contents">
-			<h1>Module superstruct</h1>
-			<p> This module provides a single type, <code class="prettyprint lang-d"><a href="./superstruct/SuperStruct.html"><code class="prettyprint lang-d">SuperStruct</code></a></code>.
-</p>
-<section>
-</section>
+			<h1>API documentation</h1>
+			<table>
+				<col class="caption"/>
+				<tr>
+					<th>Module</th>
+					<th>Description</th>
+				</tr>
+			<tr>
+				<td>
+					<a href="./superstruct.html">superstruct</a>
+				</td>
+				<td>
+This module provides a single type, <code class="prettyprint lang-d"><a href="./superstruct/SuperStruct.html">SuperStruct</a></code>.
 
-			<section><section><h2>Example</h2>
-<p>Two disparate structs ... they can't be used interchangeably, right?
-</p>
-<pre class="code prettyprint lang-d">import std.math, std.algorithm;
-
-struct Square {
-  float size;
-  float area() { return size * size; }
-}
-
-struct Circle {
-  float r;
-  float area() { return r * r * PI; }
-}
-
-// Or can they?
-alias Shape = <a href="./superstruct/SuperStruct.html">SuperStruct</a>!(Square, Circle);
-
-// look! polymorphism!
-Shape sqr = Square(2);
-Shape cir = Circle(4);
-Shape[] shapes = [ sqr, cir ];
-
-// call functions that are shared between the source types!
-assert(shapes.map!(x => x.area).sum.approxEqual(2 * 2 + 4 * 4 * PI));
-</pre>
-</section>
-<section><h2>Example</h2>
-<p>Want to access fields of the underlying types? Not a problem!
-</p>
-
-<p>Are some of them properties? Not a problem!
-</p>
-<pre class="code prettyprint lang-d">struct Square {
-  int top, left, width, height;
-}
-
-struct Circle {
-  int radius;
-  int x, y;
-
-  auto top() { return y - radius; }
-  auto top(int val) { return y = val + radius; }
-}
-
-alias Shape = <a href="./superstruct/SuperStruct.html">SuperStruct</a>!(Square, Circle);
-
-// if a Shape is a Circle, `top` forwards to Circle's top property
-Shape cir = Circle(4, 0, 0);
-assert(cir.top = 6);
-assert(cir.top == 6);
-
-// if a Shape is a Square, `top` forwards to Squares's top field
-Shape sqr = Square(0, 0, 4, 4);
-assert(sqr.top = 6);
-assert(sqr.top == 6);
-
-// Square.left is hidden, as Circle has no such member
-static assert(!is(typeof(sqr.left)));
-</pre>
-</section>
-</section>
-			<section>
-				<h2>Structs</h2>
-				<table>
-					<col class="caption"/>
-					<tr>
-						<th>Name</th>
-						<th>Description</th>
-					</tr>
-					<tr>
-						<td>
-							<a id="SuperStruct" class="public" href="./superstruct/SuperStruct.html">
-								<code>SuperStruct</code>
-							</a>
-						</td>
-						<td> A Variant which exposes members that are common across all <code class="prettyprint lang-d">SubTypes</code>.
-</td>
-					</tr>
-				</table>
-			</section>
+				</td>
+			</tr>
+			</table>
 			<section>
 				<h2>Authors</h2>
-<p>Ryan Roden-Corrent (<a href="https://github.com/rcorre">rcorre</a>)
-</p>
-
 			</section>
 			<section>
 				<h2>Copyright</h2>
-<p>© 2015, Ryan Roden-Corrent
-</p>
-
 			</section>
 			<section>
 				<h2>License</h2>
-<p>MIT
-</p>
-
 			</section>
 		</div>
 	</body>

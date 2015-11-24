@@ -34,14 +34,13 @@ $('#symbolSearchPane').show();
 		<div id="main-contents">
 			<h1>Struct SuperStruct</h1>
 			<section>
-				<p> A Variant which exposes members that are common across all <code class="prettyprint lang-d">SubTypes</code>.
+				<p>A Variant which exposes members that are common across all <code class="prettyprint lang-d">SubTypes</code>.
 </p>
-<section>
-<p> A <code class="prettyprint lang-d"><code class="prettyprint lang-d">SuperStruct</code>!(SubTypes...)</code> wraps an <code class="prettyprint lang-d">Algebraic!(SubTypes...)</code>.  It can
+<section><p>A <code class="prettyprint lang-d">SuperStruct!(SubTypes...)</code> wraps an <code class="prettyprint lang-d">Algebraic!(SubTypes...)</code>.  It can
  hold a single value from any of its <code class="prettyprint lang-d">SubTypes</code>.
 </p>
 
-<p> Unlike a Variant/Algebraic, <code class="prettyprint lang-d"><code class="prettyprint lang-d">SuperStruct</code></code> exposes access to 'common' members
+<p> Unlike a Variant/Algebraic, <code class="prettyprint lang-d">SuperStruct</code> exposes access to 'common' members
  that have compatible signatures.
 </p>
 
@@ -51,12 +50,12 @@ $('#symbolSearchPane').show();
  the provided set of arguments and_ all such calls have a common return type.
 </p>
 
-<p> <code class="prettyprint lang-d"><code class="prettyprint lang-d">SuperStruct</code></code> ignores members beginning with "_".
+<p> <code class="prettyprint lang-d">SuperStruct</code> ignores members beginning with "_" (double underscore).
 </p>
 </section>
 
 					<section>
-						<h3>Templates</h3>
+						<h3>Constructors</h3>
 						<table>
 							<col class="caption"/>
 							<tr>
@@ -69,7 +68,144 @@ $('#symbolSearchPane').show();
 										<code>this</code>
 									</a>
 								</td>
-								<td> Construct and populate with an initial value.
+								<td>Construct and populate with an initial <a href="../superstruct/SuperStruct.this.html#value"><code class="prettyprint lang-d">value</code></a>.
+</td>
+							</tr>
+						</table>
+					</section>
+					<section>
+						<h3>Methods</h3>
+						<table>
+							<col class="caption"/>
+							<tr>
+								<th>Name</th>
+								<th>Description</th>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opAssign.html" class="public">
+										<code>opAssign</code>
+									</a>
+								</td>
+								<td>Populate the <code class="prettyprint lang-d"><a href="../superstruct/SuperStruct.html">SuperStruct</a></code> with an instance of one of its sub-types.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opBinary.html" class="public">
+										<code>opBinary</code>
+									</a>
+								</td>
+								<td>Operators are forwarded to the underlying type.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opBinary.html" class="public">
+										<code>opBinary</code>
+									</a>
+								</td>
+								<td>Perform a binary operation between two superstructs.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opCall.html" class="public">
+										<code>opCall</code>
+									</a>
+								</td>
+								<td>Operators are forwarded to the underlying type.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opCast.html" class="public">
+										<code>opCast</code>
+									</a>
+								</td>
+								<td>Extract the wrapped value of type <code class="prettyprint lang-d">T</code> from the <code class="prettyprint lang-d"><a href="../superstruct/SuperStruct.html">SuperStruct</a></code>.
+ Throws a <code class="prettyprint lang-d">VariantException</code> if conversion to <code class="prettyprint lang-d">T</code> is not possible.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opCmp.html" class="public">
+										<code>opCmp</code>
+									</a>
+								</td>
+								<td>Operators are forwarded to the underlying type.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opDollar.html" class="public">
+										<code>opDollar</code>
+									</a>
+								</td>
+								<td>Operators are forwarded to the underlying type.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opEquals.html" class="public">
+										<code>opEquals</code>
+									</a>
+								</td>
+								<td>Operators are forwarded to the underlying type.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opEquals.html" class="public">
+										<code>opEquals</code>
+									</a>
+								</td>
+								<td>Compare one <code class="prettyprint lang-d"><a href="../superstruct/SuperStruct.html">SuperStruct</a></code> to another of the same type.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opIndex.html" class="public">
+										<code>opIndex</code>
+									</a>
+								</td>
+								<td>Operators are forwarded to the underlying type.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opOpAssign.html" class="public">
+										<code>opOpAssign</code>
+									</a>
+								</td>
+								<td>Operators are forwarded to the underlying type.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opOpAssign.html" class="public">
+										<code>opOpAssign</code>
+									</a>
+								</td>
+								<td>Perform a binary operation between two superstructs.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opSlice.html" class="public">
+										<code>opSlice</code>
+									</a>
+								</td>
+								<td>Operators are forwarded to the underlying type.
+</td>
+							</tr>
+							<tr>
+								<td>
+									<a href="../superstruct/SuperStruct.opUnary.html" class="public">
+										<code>opUnary</code>
+									</a>
+								</td>
+								<td>Operators are forwarded to the underlying type.
 </td>
 							</tr>
 						</table>
@@ -77,17 +213,18 @@ $('#symbolSearchPane').show();
 <section><h3>Example</h3>
 <p>If all types have a matching field, it gets exposed:
 </p>
-<pre class="code prettyprint lang-d">struct Foo { int a; }
+<pre class="code"><code class="prettyprint lang-d">struct Foo { int a; }
 struct Bar { int a; }
 auto foobar = SuperStruct!(Foo, Bar)(Foo(1));
 foobar.a = 5;
 assert(foobar.a == 5);
-</pre>
+
+</code></pre>
 </section>
 <section><h3>Example</h3>
 <p>If all types have a matching method, all compatible overloads are exposed:
 </p>
-<pre class="code prettyprint lang-d">struct Foo {
+<pre class="code"><code class="prettyprint lang-d">struct Foo {
   int fun(int i) { return i; }
   int fun(int a, int b) { return a + b; }
 }
@@ -101,12 +238,13 @@ auto foobar = SuperStruct!(Foo, Bar)(Foo());
 assert(foobar.fun(1)    == 1);
 assert(foobar.fun(1, 2) == 3);
 assert(!__traits(compiles, foobar.fun(1,2,3))); // no such overload on Foo
-</pre>
+
+</code></pre>
 </section>
 <section><h3>Example</h3>
 <p>If a name is a field on one type and a method on another, it is exposed:
 </p>
-<pre class="code prettyprint lang-d">struct Foo { int a; }
+<pre class="code"><code class="prettyprint lang-d">struct Foo { int a; }
 struct Bar {
   private int _a;
   int a() { return _a; }
@@ -120,7 +258,110 @@ assert(foo.a == 5); // gets Foo.a
 auto bar = SuperStruct!(Foo, Bar)(Bar());
 bar.a = 5;          // invokes Bar.a(int val)
 assert(bar.a == 5); // invokes Bar.a()
-</pre>
+
+</code></pre>
+</section>
+<section><h3>Example</h3>
+<p>Templated members can be forwarded too:
+</p>
+<pre class="code"><code class="prettyprint lang-d">struct Foo {
+  int val;
+  auto transmorgrify(alias fn1, alias fn2)() {
+    return fn2(fn2(val));
+  }
+}
+
+struct Bar {
+  auto transmorgrify(alias fn1, alias fn2)() { return 0; }
+}
+
+static auto add1 = (int a) =&gt; a + 1;
+
+alias FooBar = SuperStruct!(Foo, Bar);
+
+FooBar f = Foo(3);
+assert(f.transmorgrify!(add1, add1) == 5); // 3 + 1 + 1
+
+FooBar b = Bar();
+assert(b.transmorgrify!(add1, add1) == 0);
+
+</code></pre>
+</section>
+<section><h3>Example</h3>
+<p>Operators get forwarded to the underlying type
+</p>
+<pre class="code"><code class="prettyprint lang-d">struct Foo {
+  auto <a href="../superstruct/SuperStruct.opSlice.html">opSlice</a>() { return [1,2,3]; }
+}
+
+struct Bar {
+  auto <a href="../superstruct/SuperStruct.opSlice.html">opSlice</a>() { return [4,5,6]; }
+}
+
+SuperStruct!(Foo, Bar) fb = Foo();
+assert(fb[] == [1,2,3]);
+
+</code></pre>
+</section>
+<section><h3>Example</h3>
+<p>SuperStructs of the same type can be compared:
+</p>
+<pre class="code"><code class="prettyprint lang-d">struct A { int i; }
+struct B { int i; }
+struct C { int i; bool <a href="../superstruct/SuperStruct.opEquals.html">opEquals</a>(T)(T other) { return other.i == i; } }
+
+SuperStruct!(A, B, C) a0 = A(0);
+SuperStruct!(A, B, C) a1 = A(1);
+SuperStruct!(A, B, C) b0 = B(0);
+SuperStruct!(A, B, C) c0 = C(0);
+
+assert(a0 == a0); // same type, same value
+assert(a0 != a1); // same type, different value
+assert(a0 != b0); // incomparable types return false
+assert(a0 == c0); // different but comparable types
+
+// SuperStructs with different sets of source types are not comparable, even
+// if the types they happen to contain at the moment are.
+SuperStruct!(A, B) different = A(0);
+static assert(!__traits(compiles, different == a0));
+
+</code></pre>
+</section>
+<section><h3>Example</h3>
+<p>If members have common signatures but no common return type, the exposed
+</p>
+
+<p>member returns a <code class="prettyprint lang-d">SuperStruct</code> of the possible return types.
+</p>
+<pre class="code"><code class="prettyprint lang-d">struct A { auto fun() { return 1; } }
+struct B { auto fun() { return "hi"; } }
+
+SuperStruct!(A, B) a = A();
+SuperStruct!(A, B) b = B();
+
+assert(a.fun == SuperStruct!(int, string)(1));
+assert(b.fun == SuperStruct!(int, string)("hi"));
+
+</code></pre>
+</section>
+<section><h3>Example</h3>
+<p>Use <code class="prettyprint lang-d">cast(T)</code> to convert a <code class="prettyprint lang-d">SuperStruct</code> to a subtype
+</p>
+<pre class="code"><code class="prettyprint lang-d">import std.exception : assertThrown;
+
+struct Square { float size; }
+struct Circle { float r; }
+
+SuperStruct!(Square, Circle) sqr = Square(4);
+SuperStruct!(Square, Circle) cir = Circle(6);
+
+assert((cast(Square) sqr).size == 4);
+assert((cast(Circle) cir).r    == 6);
+
+assertThrown!VariantException(cast(Circle) sqr);
+assertThrown!VariantException(cast(Square) cir);
+
+</code></pre>
 </section>
 
 			</section>

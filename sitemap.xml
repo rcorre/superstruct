@@ -2,7 +2,23 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url><loc>http://127.0.0.1/index.html</loc></url>
 <url><loc>http://127.0.0.1/superstruct.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/pick.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/pickAmong.html</loc></url>
 <url><loc>http://127.0.0.1/superstruct/SuperStruct.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opAssign.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opBinary.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opBinary.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opCall.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opCast.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opCmp.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opDollar.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opEquals.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opEquals.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opIndex.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opOpAssign.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opOpAssign.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opSlice.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opSlice.html</loc></url>
+<url><loc>http://127.0.0.1/superstruct/SuperStruct.opUnary.html</loc></url>
 <url><loc>http://127.0.0.1/superstruct/SuperStruct.this.html</loc></url>
-<url><loc>http://127.0.0.1/superstruct/SuperStruct.this.this.html</loc></url>
 </urlset>
